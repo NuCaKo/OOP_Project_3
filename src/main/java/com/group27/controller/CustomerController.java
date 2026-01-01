@@ -50,6 +50,24 @@ public class CustomerController {
         
         loadProducts();
         loadMessages();
+
+        // Initialize Mini-Cart
+        if (miniCartList != null) {
+            updateMiniCart();
+            CartController.getCartItems().addListener((javafx.collections.ListChangeListener<CartController.CartItem>) c -> updateMiniCart());
+        }
+    }
+
+    private void updateMiniCart() {
+        if (miniCartList == null) return;
+        miniCartList.getItems().clear();
+        double total = 0;
+        for (CartController.CartItem item : CartController.getCartItems()) {
+            miniCartList.getItems().add(String.format("%s (%.2f kg) - $%.2f", item.getProduct().getName(), item.getAmount(), item.getTotal()));
+            total += item.getTotal();
+        }
+        miniCartList.getItems().add("----------------");
+        miniCartList.getItems().add(String.format("Total: $%.2f", total));
     }
 
     private void loadProducts() {
@@ -390,8 +408,17 @@ public class CustomerController {
         }
     }
 
-    @FXML private ListView<String> miniCartList; // Need to add this to FXML or bind if possible
-    @FXML private VBox profileBox; // For toggling
+    @FXML private ListView<String> miniCartList;
+    @FXML private VBox profileBox;
+
+    @FXML
+    private void toggleProfile() {
+        if (profileBox != null) {
+            boolean visible = !profileBox.isVisible();
+            profileBox.setVisible(visible);
+            profileBox.setManaged(visible);
+        }
+    }
 
     @FXML
     private void updateProfile() {

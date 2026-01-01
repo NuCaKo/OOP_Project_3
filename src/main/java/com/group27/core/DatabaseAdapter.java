@@ -26,6 +26,13 @@ public class DatabaseAdapter {
 
     private DatabaseAdapter() {
         connect();
+        // Database initialization is handled by database.sql
+        // We only ensure images are loaded if missing because BLOBs are hard to seed via SQL script
+        try {
+            refreshAllProductImages();
+        } catch (Exception e) {
+            System.err.println("Warning: Could not refresh product images. Ensure 'database.sql' has been run and the database is accessible.");
+        }
     }
 
     public static DatabaseAdapter getInstance() {
@@ -33,6 +40,67 @@ public class DatabaseAdapter {
             instance = new DatabaseAdapter();
         }
         return instance;
+    }
+
+    private void refreshAllProductImages() {
+        String query = "SELECT id, name, type FROM ProductInfo";
+        String update = "UPDATE ProductInfo SET imagelocation = ? WHERE id = ?";
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query);
+             PreparedStatement pstmt = conn.prepareStatement(update)) {
+
+             while (rs.next()) {
+                 int id = rs.getInt("id");
+                 String name = rs.getString("name");
+                 String type = rs.getString("type");
+                 byte[] img = generateProductImage(name, type);
+                 pstmt.setBytes(1, img);
+                 pstmt.setInt(2, id);
+                 pstmt.executeUpdate();
+             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private byte[] generateProductImage(String name, String type) {
+        String filename = "default.png";
+        String lower = name.toLowerCase();
+
+        if (lower.contains("tomato")) filename = "tomato.png";
+        else if (lower.contains("potato")) filename = "potato.png";
+        else if (lower.contains("onion")) filename = "onion.png";
+        else if (lower.contains("carrot")) filename = "carrot.png";
+        else if (lower.contains("cucumber") || lower.contains("zucchini")) filename = "cucumber.png";
+        else if (lower.contains("pepper")) filename = "pepper.png";
+        else if (lower.contains("lettuce")) filename = "lettuce.png";
+        else if (lower.contains("spinach")) filename = "spinach.png";
+        else if (lower.contains("broccoli")) filename = "broccoli.png";
+        else if (lower.contains("garlic")) filename = "garlic.png";
+        else if (lower.contains("apple")) filename = "apple.png";
+        else if (lower.contains("banana")) filename = "banana.png";
+        else if (lower.contains("orange")) filename = "orange.png";
+        else if (lower.contains("grape")) filename = "grape.png";
+        else if (lower.contains("strawberry")) filename = "strawberry.png";
+        else if (lower.contains("watermelon")) filename = "watermelon.png";
+        else if (lower.contains("melon")) filename = "melon.png";
+        else if (lower.contains("peach")) filename = "peach.png";
+        else if (lower.contains("pear")) filename = "pear.png";
+        else if (lower.contains("cherry")) filename = "cherry.png";
+        else if (lower.contains("kiwi")) filename = "kiwi.png";
+
+        try (java.io.InputStream is = getClass().getResourceAsStream("/images/" + filename)) {
+            if (is != null) {
+                return is.readAllBytes();
+            } else {
+                System.err.println("Image not found: " + filename);
+                return new byte[0];
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new byte[0];
+        }
     }
 
     private void connect() {
@@ -45,7 +113,7 @@ public class DatabaseAdapter {
             e.printStackTrace();
         }
     }
-    
+
 
     // Kullanıcı Giriş Kontrolü (Login)
     public boolean login(String username, String password) {
