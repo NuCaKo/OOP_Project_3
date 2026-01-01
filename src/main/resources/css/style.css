@@ -123,6 +123,30 @@
     -fx-border-color: transparent;
 }
 
+.category-header-veg > .title {
+    -fx-background-color: linear-gradient(to right, #a5d6a7, rgba(255,255,255,0.8));
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.category-header-veg > .title .text {
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-fill: #1b5e20;
+}
+
+.category-header-fruit > .title {
+    -fx-background-color: linear-gradient(to right, #ffcc80, rgba(255,255,255,0.8));
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.category-header-fruit > .title .text {
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-fill: #e65100;
+}
+
 .titled-pane:focused > .title {
     -fx-color: transparent;
 }

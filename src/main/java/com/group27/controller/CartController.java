@@ -43,6 +43,8 @@ public class CartController {
 
     private static ObservableList<CartItem> cartItems = FXCollections.observableArrayList();
 
+    public static ObservableList<CartItem> getCartItems() { return cartItems; }
+
     public static void addItem(Product p, double amount, double price) {
         for (CartItem item : cartItems) {
             if (item.getProduct().getId() == p.getId()) {

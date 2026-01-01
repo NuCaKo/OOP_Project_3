@@ -84,9 +84,10 @@ public class CustomerController {
         vegPane.getChildren().clear();
         fruitPane.getChildren().clear();
         
+        vegPane.setPrefWrapLength(700); // Helps with grid structure
+        fruitPane.setPrefWrapLength(700);
+
         for (Product p : products) {
-            // Option: Show zero stock items but disable adding them.
-            
             VBox card = createProductCard(p);
             if ("Vegetable".equalsIgnoreCase(p.getType())) {
                 vegPane.getChildren().add(card);
@@ -99,12 +100,14 @@ public class CustomerController {
     private VBox createProductCard(Product p) {
         VBox card = new VBox(10);
         card.getStyleClass().add("product-card");
-        card.setPrefWidth(200);
+        // Reduced width to fit 3 in a row
+        card.setPrefWidth(180);
         card.setAlignment(Pos.CENTER);
 
         ImageView imgView = new ImageView(); 
-        imgView.setFitHeight(120);
-        imgView.setFitWidth(120);
+        // Reduced image size as requested
+        imgView.setFitHeight(80);
+        imgView.setFitWidth(80);
         imgView.setPreserveRatio(true);
         
         java.io.InputStream is = DatabaseAdapter.getInstance().getProductImage(p.getId());
@@ -146,7 +149,7 @@ public class CustomerController {
             double val = Double.parseDouble(qtyLabel.getText());
             if (val < p.getStock()) qtyLabel.setText(String.format(Locale.US, "%.2f", val + 0.25));
         });
-        
+
         qtyBox.getChildren().addAll(minusBtn, qtyLabel, plusBtn);
         
         Button addBtn = new Button("Add to Cart");
@@ -386,6 +389,9 @@ public class CustomerController {
             e.printStackTrace();
         }
     }
+
+    @FXML private ListView<String> miniCartList; // Need to add this to FXML or bind if possible
+    @FXML private VBox profileBox; // For toggling
 
     @FXML
     private void updateProfile() {
