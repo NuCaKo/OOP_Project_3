@@ -208,99 +208,42 @@ public class DatabaseAdapter {
     }
 
     private byte[] generateProductImage(String name, String type) {
-        int width = 250;
-        int height = 250;
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = bufferedImage.createGraphics();
-
-        // Enable Anti-aliasing
-        g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Background (Light/Cream)
-        g2d.setColor(new Color(250, 250, 245));
-        g2d.fillRect(0, 0, width, height);
-
-        // Determine Color & Shape based on Name
-        Color primaryColor = Color.GREEN;
-        String shape = "CIRCLE";
-        String lowerName = name.toLowerCase();
-
-        if (lowerName.contains("tomato") || lowerName.contains("apple") || lowerName.contains("cherry") || lowerName.contains("strawberry") || lowerName.contains("pepper")) {
-            primaryColor = new Color(220, 53, 69); // Red
-            if (lowerName.contains("pepper")) shape = "LONG";
-        } else if (lowerName.contains("orange") || lowerName.contains("carrot") || lowerName.contains("peach") || lowerName.contains("melon")) {
-            primaryColor = new Color(253, 126, 20); // Orange
-            if (lowerName.contains("carrot")) shape = "TRIANGLE";
-        } else if (lowerName.contains("banana") || lowerName.contains("lemon") || lowerName.contains("corn") || lowerName.contains("potato") || lowerName.contains("pear")) {
-            primaryColor = new Color(255, 193, 7); // Yellow
-            shape = "OVAL";
-            if (lowerName.contains("banana")) shape = "CURVE";
-        } else if (lowerName.contains("grape") || lowerName.contains("plum") || lowerName.contains("onion") || lowerName.contains("turnip")) {
-            primaryColor = new Color(111, 66, 193); // Purple
-        } else if (lowerName.contains("cucumber") || lowerName.contains("zucchini") || lowerName.contains("lettuce") || lowerName.contains("spinach") || lowerName.contains("broccoli") || lowerName.contains("watermelon")) {
-            primaryColor = new Color(40, 167, 69); // Green
-            if (lowerName.contains("cucumber") || lowerName.contains("zucchini")) shape = "LONG";
-            if (lowerName.contains("broccoli") || lowerName.contains("cauliflower")) shape = "CLOUD";
-        } else if (lowerName.contains("cauliflower") || lowerName.contains("garlic") || lowerName.contains("mushroom")) {
-            primaryColor = new Color(230, 230, 230); // White/Grey
-            shape = "CLOUD";
-        }
-
-        // Draw Shape
-        g2d.setColor(primaryColor);
-        if (shape.equals("CIRCLE")) {
-            g2d.fillOval(50, 50, 150, 150);
-            // Highlight
-            g2d.setColor(new Color(255, 255, 255, 100));
-            g2d.fillOval(140, 70, 40, 40);
-        } else if (shape.equals("OVAL")) {
-            g2d.fillOval(75, 50, 100, 150);
-        } else if (shape.equals("LONG")) {
-            g2d.fillRoundRect(85, 30, 80, 190, 40, 40);
-        } else if (shape.equals("CLOUD")) {
-            g2d.fillOval(50, 80, 80, 80);
-            g2d.fillOval(120, 80, 80, 80);
-            g2d.fillOval(85, 50, 80, 80);
-        } else if (shape.equals("CURVE")) {
-            g2d.setStroke(new java.awt.BasicStroke(40, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
-            g2d.drawArc(50, 50, 150, 150, 180, 135);
-        } else if (shape.equals("TRIANGLE")) {
-            int[] xPoints = {125, 175, 75};
-            int[] yPoints = {220, 40, 40}; // Inverted visually or just triangle
-            // Carrot shape: wide top, narrow bottom
-             int[] xP = {75, 175, 125};
-             int[] yP = {50, 50, 220};
-             g2d.fillPolygon(xP, yP, 3);
-        }
+        String filename = "default.png";
+        String lower = name.toLowerCase();
         
-        // Leaf/Stem
-        g2d.setColor(new Color(34, 139, 34)); // Forest Green
-        if (!shape.equals("CLOUD") && !name.toLowerCase().contains("lettuce")) {
-            g2d.fillOval(120, 30, 10, 25);
-            g2d.fillOval(120, 30, 25, 10);
-        }
+        if (lower.contains("tomato")) filename = "tomato.png";
+        else if (lower.contains("potato")) filename = "potato.png";
+        else if (lower.contains("onion")) filename = "onion.png";
+        else if (lower.contains("carrot")) filename = "carrot.png";
+        else if (lower.contains("cucumber") || lower.contains("zucchini")) filename = "cucumber.png";
+        else if (lower.contains("pepper")) filename = "pepper.png";
+        else if (lower.contains("lettuce")) filename = "lettuce.png";
+        else if (lower.contains("spinach")) filename = "spinach.png";
+        else if (lower.contains("broccoli")) filename = "broccoli.png";
+        else if (lower.contains("garlic")) filename = "garlic.png";
+        else if (lower.contains("apple")) filename = "apple.png";
+        else if (lower.contains("banana")) filename = "banana.png";
+        else if (lower.contains("orange")) filename = "orange.png";
+        else if (lower.contains("grape")) filename = "grape.png";
+        else if (lower.contains("strawberry")) filename = "strawberry.png";
+        else if (lower.contains("watermelon")) filename = "watermelon.png";
+        else if (lower.contains("melon")) filename = "melon.png";
+        else if (lower.contains("peach")) filename = "peach.png";
+        else if (lower.contains("pear")) filename = "pear.png";
+        else if (lower.contains("cherry")) filename = "cherry.png";
+        else if (lower.contains("kiwi")) filename = "kiwi.png";
 
-        // Text Label (Bottom)
-        g2d.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        java.awt.FontMetrics fm = g2d.getFontMetrics();
-        int textX = (width - fm.stringWidth(name)) / 2;
-        int textY = height - 20;
-
-        // Text Shadow
-        g2d.setColor(new Color(0, 0, 0, 30));
-        g2d.drawString(name, textX + 1, textY + 1);
-        g2d.setColor(Color.DARK_GRAY);
-        g2d.drawString(name, textX, textY);
-
-        g2d.dispose();
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            ImageIO.write(bufferedImage, "png", baos);
+        try (java.io.InputStream is = getClass().getResourceAsStream("/images/" + filename)) {
+            if (is != null) {
+                return is.readAllBytes();
+            } else {
+                System.err.println("Image not found: " + filename);
+                return new byte[0];
+            }
         } catch (Exception e) {
             e.printStackTrace();
+            return new byte[0];
         }
-        return baos.toByteArray();
     }
 
     private boolean hasData(String tableName) throws SQLException {

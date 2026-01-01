@@ -4,6 +4,7 @@
 /app/src/main/java/com/group27/controller/CartController.java
 /app/src/main/java/com/group27/controller/CustomerController.java
 /app/src/main/java/com/group27/controller/LoginController.java
+/app/src/main/java/com/group27/controller/OrderController.java
 /app/src/main/java/com/group27/controller/OwnerController.java
 /app/src/main/java/com/group27/core/DatabaseAdapter.java
 /app/src/main/java/com/group27/model/Message.java

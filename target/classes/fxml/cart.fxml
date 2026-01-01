@@ -11,21 +11,8 @@
 
     <Label text="Your Shopping Cart" styleClass="title-label"/>
 
-    <TableView fx:id="cartTable" VBox.vgrow="ALWAYS">
-        <columns>
-            <TableColumn fx:id="nameCol" text="Product" prefWidth="150"/>
-            <TableColumn fx:id="priceCol" text="Price/kg" prefWidth="100"/>
-            <TableColumn fx:id="amountCol" text="Amount (kg)" prefWidth="100"/>
-            <TableColumn fx:id="totalCol" text="Total" prefWidth="100"/>
-        </columns>
-    </TableView>
+    <ListView fx:id="cartListView" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;"/>
 
-    <HBox spacing="20" alignment="CENTER_RIGHT">
-        <Label text="Delivery Date:"/>
-        <DatePicker fx:id="deliveryDate" promptText="Select Date"/>
-        <TextField fx:id="deliveryTime" promptText="HH:mm" prefWidth="80"/>
-    </HBox>
-    
     <HBox spacing="10" alignment="CENTER_RIGHT">
         <TextField fx:id="couponField" promptText="Coupon Code"/>
         <Button text="Apply" onAction="#applyCoupon"/>
@@ -38,6 +25,12 @@
             <Label fx:id="discountLabel" text="Discount: -$0.00" style="-fx-text-fill: green;"/>
             <Label fx:id="totalLabel" text="Total: $0.00" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
         </VBox>
+    </HBox>
+
+    <HBox spacing="20" alignment="CENTER_RIGHT" style="-fx-background-color: rgba(255,255,255,0.5); -fx-padding: 10; -fx-background-radius: 10;">
+        <Label text="Delivery:"/>
+        <DatePicker fx:id="deliveryDate" promptText="Select Date"/>
+        <TextField fx:id="deliveryTime" promptText="HH:mm" prefWidth="80"/>
         <Button text="Checkout" onAction="#handleCheckout" styleClass="button"/>
     </HBox>
 </VBox>

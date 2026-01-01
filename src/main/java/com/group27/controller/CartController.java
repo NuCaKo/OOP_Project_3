@@ -60,11 +60,7 @@ public class CartController {
         cartItems.clear();
     }
 
-    @FXML private TableView<CartItem> cartTable;
-    @FXML private TableColumn<CartItem, String> nameCol;
-    @FXML private TableColumn<CartItem, Number> priceCol;
-    @FXML private TableColumn<CartItem, Number> amountCol;
-    @FXML private TableColumn<CartItem, Number> totalCol;
+    @FXML private ListView<CartItem> cartListView;
     @FXML private DatePicker deliveryDate;
     @FXML private TextField deliveryTime;
     @FXML private Label totalLabel;
@@ -78,17 +74,60 @@ public class CartController {
 
     @FXML
     public void initialize() {
-        nameCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getProduct().getName()));
-        priceCol.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getPriceAtMoment()));
-        amountCol.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getAmount()));
-        totalCol.setCellValueFactory(data -> new SimpleDoubleProperty(data.getValue().getTotal()));
+        cartListView.setItems(cartItems);
+        cartListView.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(CartItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    javafx.scene.layout.HBox card = new javafx.scene.layout.HBox(15);
+                    card.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                    card.getStyleClass().add("liquid-glass-pane");
+                    card.setStyle("-fx-padding: 10; -fx-background-color: rgba(255,255,255,0.9);");
 
-        cartTable.setItems(cartItems);
+                    // Image
+                    javafx.scene.image.ImageView img = new javafx.scene.image.ImageView();
+                    img.setFitHeight(50);
+                    img.setFitWidth(50);
+                    img.setPreserveRatio(true);
+
+                    java.io.InputStream is = DatabaseAdapter.getInstance().getProductImage(item.getProduct().getId());
+                    if (is != null) img.setImage(new javafx.scene.image.Image(is));
+
+                    // Info
+                    javafx.scene.layout.VBox info = new javafx.scene.layout.VBox(5);
+                    Label nameLbl = new Label(item.getProduct().getName());
+                    nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+                    Label priceLbl = new Label("$" + String.format("%.2f", item.getPriceAtMoment()) + " / kg");
+                    info.getChildren().addAll(nameLbl, priceLbl);
+
+                    // Controls
+                    javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
+                    javafx.scene.layout.HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+                    Label amountLbl = new Label(String.format("%.1f kg", item.getAmount()));
+                    amountLbl.setStyle("-fx-font-size: 14px;");
+
+                    Label totalLbl = new Label("$" + String.format("%.2f", item.getTotal()));
+                    totalLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #ef6c00;");
+
+                    Button removeBtn = new Button("X");
+                    removeBtn.setStyle("-fx-background-color: #ffcdd2; -fx-text-fill: #c62828; -fx-background-radius: 15;");
+                    removeBtn.setOnAction(e -> {
+                        cartItems.remove(item);
+                        updateTotal();
+                    });
+
+                    card.getChildren().addAll(img, info, spacer, amountLbl, new Label("="), totalLbl, removeBtn);
+                    setGraphic(card);
+                }
+            }
+        });
         
         updateTotal();
-        
-        // Listener for updates
-        // In a real app, bind properties. Here simpler.
         cartItems.addListener((javafx.collections.ListChangeListener<CartItem>) c -> updateTotal());
     }
 
@@ -265,7 +304,7 @@ public class CartController {
             
             showAlert("Success", "Order placed successfully! Invoice generated. You earned " + (int)total + " loyalty points.");
             clearCart();
-            ((Stage) cartTable.getScene().getWindow()).close();
+            ((Stage) cartListView.getScene().getWindow()).close();
             
         } catch (SQLException e) {
             if (conn != null) {

@@ -261,97 +261,12 @@ public class CustomerController {
     private void openOrders() {
         try {
             Stage stage = new Stage();
-            com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
-            if (user == null) return;
-            
-            System.out.println("DEBUG: Opening orders for UserID: " + user.getId());
-
-            StringBuilder sb = new StringBuilder("Your Order History:\n\n");
-            
-            DatabaseAdapter db = DatabaseAdapter.getInstance();
-            String query = "SELECT * FROM OrderInfo WHERE user_id = ? ORDER BY ordertime DESC";
-            
-            Connection conn = db.getConnection();
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setInt(1, user.getId());
-                ResultSet rs = stmt.executeQuery();
-                
-                while (rs.next()) {
-                    sb.append("Order ID: ").append(rs.getInt("id")).append("\n");
-                    sb.append("Date: ").append(rs.getTimestamp("ordertime")).append("\n");
-                    sb.append("Delivery: ").append(rs.getTimestamp("deliverytime")).append("\n");
-                    sb.append("Total: $").append(rs.getDouble("totalcost")).append("\n");
-                    sb.append("Status: ").append(rs.getBoolean("isdelivered") ? "Delivered" : "Pending").append("\n");
-                    if (rs.getBoolean("isdelivered")) {
-                        int rating = rs.getInt("carrier_rating");
-                        if (rating > 0) {
-                            sb.append("Rating: ").append(rating).append("/5\n");
-                        } else {
-                            sb.append("Rating: Not Rated (Enter Order ID below to rate)\n");
-                        }
-                    }
-                    sb.append("----------------------------\n");
-                }
-            }
-            
-            TextArea textArea = new TextArea(sb.toString());
-            textArea.setEditable(false);
-            textArea.setWrapText(true);
-            textArea.setPrefHeight(300);
-            
-            // Rating Controls
-            VBox content = new VBox(10);
-            content.getChildren().add(textArea);
-            
-            HBox ratingBox = new HBox(10);
-            TextField orderIdField = new TextField();
-            orderIdField.setPromptText("Order ID");
-            ComboBox<Integer> ratingCombo = new ComboBox<>();
-            ratingCombo.getItems().addAll(1, 2, 3, 4, 5);
-            ratingCombo.setPromptText("Stars");
-            Button rateBtn = new Button("Rate Carrier");
-            
-            rateBtn.setOnAction(e -> {
-                String oidStr = orderIdField.getText();
-                Integer stars = ratingCombo.getValue();
-                if (oidStr.isEmpty() || stars == null) {
-                    showAlert("Error", "Select Order ID and Rating");
-                    return;
-                }
-                try {
-                    int oid = Integer.parseInt(oidStr);
-                    rateCarrier(oid, stars, user.getId());
-                } catch (NumberFormatException ex) {
-                    showAlert("Error", "Invalid Order ID");
-                }
-            });
-            
-            Button cancelBtn = new Button("Cancel Order (within 1h)");
-            cancelBtn.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white;");
-            cancelBtn.setOnAction(e -> {
-                String oidStr = orderIdField.getText();
-                if (oidStr.isEmpty()) {
-                    showAlert("Error", "Enter Order ID to cancel");
-                    return;
-                }
-                try {
-                    int oid = Integer.parseInt(oidStr);
-                    cancelOrder(oid, user.getId());
-                } catch (NumberFormatException ex) {
-                     showAlert("Error", "Invalid Order ID");
-                }
-            });
-            
-            ratingBox.getChildren().addAll(new Label("Action:"), orderIdField, ratingCombo, rateBtn, cancelBtn);
-            content.getChildren().add(ratingBox);
-            
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Order History");
-            alert.setHeaderText("Your Past Orders");
-            alert.getDialogPane().setContent(content);
-            alert.showAndWait();
-            
-        } catch (SQLException e) {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/orders.fxml"));
+            Scene scene = new Scene(loader.load(), 500, 600);
+            stage.setTitle("My Orders");
+            stage.setScene(scene);
+            stage.show();
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
