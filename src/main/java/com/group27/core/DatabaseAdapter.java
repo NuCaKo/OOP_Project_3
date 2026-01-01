@@ -163,7 +163,7 @@ public class DatabaseAdapter {
                     pstmt.setDouble(3, 2.0 + (Math.random() * 5)); // Random price
                     pstmt.setDouble(4, 100.0);
                     pstmt.setDouble(5, 10.0);
-                    byte[] img = generateImage(v, Color.GREEN);
+                    byte[] img = generateProductImage(v, "Vegetable");
                     pstmt.setBytes(6, img);
                     pstmt.addBatch();
                 }
@@ -173,31 +173,31 @@ public class DatabaseAdapter {
                     pstmt.setDouble(3, 3.0 + (Math.random() * 10));
                     pstmt.setDouble(4, 100.0);
                     pstmt.setDouble(5, 10.0);
-                    byte[] img = generateImage(f, Color.ORANGE);
+                    byte[] img = generateProductImage(f, "Fruit");
                     pstmt.setBytes(6, img);
                     pstmt.addBatch();
                 }
                 pstmt.executeBatch();
             }
-        } else {
-             // Update images if null
-             updateMissingImages();
         }
+
+        // Always refresh images to new style
+        refreshAllProductImages();
     }
     
-    private void updateMissingImages() {
-        String query = "SELECT id, name, type FROM ProductInfo WHERE imagelocation IS NULL";
+    private void refreshAllProductImages() {
+        String query = "SELECT id, name, type FROM ProductInfo";
         String update = "UPDATE ProductInfo SET imagelocation = ? WHERE id = ?";
-        try (Statement stmt = getConnection().createStatement();
+        Connection conn = getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query);
-             PreparedStatement pstmt = getConnection().prepareStatement(update)) {
+             PreparedStatement pstmt = conn.prepareStatement(update)) {
              
              while (rs.next()) {
                  int id = rs.getInt("id");
                  String name = rs.getString("name");
                  String type = rs.getString("type");
-                 Color c = type.equalsIgnoreCase("Vegetable") ? Color.GREEN : Color.ORANGE;
-                 byte[] img = generateImage(name, c);
+                 byte[] img = generateProductImage(name, type);
                  pstmt.setBytes(1, img);
                  pstmt.setInt(2, id);
                  pstmt.executeUpdate();
@@ -207,34 +207,90 @@ public class DatabaseAdapter {
         }
     }
 
-    private byte[] generateImage(String text, Color bgColor) {
+    private byte[] generateProductImage(String name, String type) {
         int width = 250;
         int height = 250;
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = bufferedImage.createGraphics();
 
-        // Gradient Background
-        java.awt.GradientPaint gp = new java.awt.GradientPaint(0, 0, bgColor.brighter(), 0, height, bgColor.darker());
-        g2d.setPaint(gp);
+        // Enable Anti-aliasing
+        g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // Background (Light/Cream)
+        g2d.setColor(new Color(250, 250, 245));
         g2d.fillRect(0, 0, width, height);
+
+        // Determine Color & Shape based on Name
+        Color primaryColor = Color.GREEN;
+        String shape = "CIRCLE";
+        String lowerName = name.toLowerCase();
+
+        if (lowerName.contains("tomato") || lowerName.contains("apple") || lowerName.contains("cherry") || lowerName.contains("strawberry") || lowerName.contains("pepper")) {
+            primaryColor = new Color(220, 53, 69); // Red
+            if (lowerName.contains("pepper")) shape = "LONG";
+        } else if (lowerName.contains("orange") || lowerName.contains("carrot") || lowerName.contains("peach") || lowerName.contains("melon")) {
+            primaryColor = new Color(253, 126, 20); // Orange
+            if (lowerName.contains("carrot")) shape = "TRIANGLE";
+        } else if (lowerName.contains("banana") || lowerName.contains("lemon") || lowerName.contains("corn") || lowerName.contains("potato") || lowerName.contains("pear")) {
+            primaryColor = new Color(255, 193, 7); // Yellow
+            shape = "OVAL";
+            if (lowerName.contains("banana")) shape = "CURVE";
+        } else if (lowerName.contains("grape") || lowerName.contains("plum") || lowerName.contains("onion") || lowerName.contains("turnip")) {
+            primaryColor = new Color(111, 66, 193); // Purple
+        } else if (lowerName.contains("cucumber") || lowerName.contains("zucchini") || lowerName.contains("lettuce") || lowerName.contains("spinach") || lowerName.contains("broccoli") || lowerName.contains("watermelon")) {
+            primaryColor = new Color(40, 167, 69); // Green
+            if (lowerName.contains("cucumber") || lowerName.contains("zucchini")) shape = "LONG";
+            if (lowerName.contains("broccoli") || lowerName.contains("cauliflower")) shape = "CLOUD";
+        } else if (lowerName.contains("cauliflower") || lowerName.contains("garlic") || lowerName.contains("mushroom")) {
+            primaryColor = new Color(230, 230, 230); // White/Grey
+            shape = "CLOUD";
+        }
+
+        // Draw Shape
+        g2d.setColor(primaryColor);
+        if (shape.equals("CIRCLE")) {
+            g2d.fillOval(50, 50, 150, 150);
+            // Highlight
+            g2d.setColor(new Color(255, 255, 255, 100));
+            g2d.fillOval(140, 70, 40, 40);
+        } else if (shape.equals("OVAL")) {
+            g2d.fillOval(75, 50, 100, 150);
+        } else if (shape.equals("LONG")) {
+            g2d.fillRoundRect(85, 30, 80, 190, 40, 40);
+        } else if (shape.equals("CLOUD")) {
+            g2d.fillOval(50, 80, 80, 80);
+            g2d.fillOval(120, 80, 80, 80);
+            g2d.fillOval(85, 50, 80, 80);
+        } else if (shape.equals("CURVE")) {
+            g2d.setStroke(new java.awt.BasicStroke(40, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+            g2d.drawArc(50, 50, 150, 150, 180, 135);
+        } else if (shape.equals("TRIANGLE")) {
+            int[] xPoints = {125, 175, 75};
+            int[] yPoints = {220, 40, 40}; // Inverted visually or just triangle
+            // Carrot shape: wide top, narrow bottom
+             int[] xP = {75, 175, 125};
+             int[] yP = {50, 50, 220};
+             g2d.fillPolygon(xP, yP, 3);
+        }
         
-        // Inner Border
-        g2d.setColor(new Color(255, 255, 255, 100));
-        g2d.setStroke(new java.awt.BasicStroke(5));
-        g2d.drawRect(10, 10, width - 20, height - 20);
+        // Leaf/Stem
+        g2d.setColor(new Color(34, 139, 34)); // Forest Green
+        if (!shape.equals("CLOUD") && !name.toLowerCase().contains("lettuce")) {
+            g2d.fillOval(120, 30, 10, 25);
+            g2d.fillOval(120, 30, 25, 10);
+        }
+
+        // Text Label (Bottom)
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        java.awt.FontMetrics fm = g2d.getFontMetrics();
+        int textX = (width - fm.stringWidth(name)) / 2;
+        int textY = height - 20;
 
         // Text Shadow
-        g2d.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        java.awt.FontMetrics fm = g2d.getFontMetrics();
-        int x = (width - fm.stringWidth(text)) / 2;
-        int y = (height - fm.getHeight()) / 2 + fm.getAscent();
-        
-        g2d.setColor(new Color(0, 0, 0, 50));
-        g2d.drawString(text, x + 2, y + 2);
-
-        // Text
-        g2d.setColor(Color.WHITE);
-        g2d.drawString(text, x, y);
+        g2d.setColor(new Color(0, 0, 0, 30));
+        g2d.drawString(name, textX + 1, textY + 1);
+        g2d.setColor(Color.DARK_GRAY);
+        g2d.drawString(name, textX, textY);
 
         g2d.dispose();
 

@@ -84,7 +84,10 @@
 
 .product-card:hover {
     -fx-effect: dropshadow(three-pass-box, rgba(46, 125, 50, 0.4), 15, 0, 0, 5);
-    -fx-translate-y: -2;
+    -fx-translate-y: -5;
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+    -fx-border-color: #4caf50;
 }
 
 .product-title {

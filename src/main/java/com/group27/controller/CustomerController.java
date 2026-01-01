@@ -142,7 +142,21 @@ public class CustomerController {
             stockLbl.setText("Low Stock: " + p.getStock() + " kg");
         }
         
-        addBtn.setOnAction(e -> addToCart(p, amountField.getText(), finalPrice));
+        addBtn.setOnAction(e -> {
+            // Animation for visual feedback
+            javafx.animation.ScaleTransition st = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(100), addBtn);
+            st.setByX(0.2);
+            st.setByY(0.2);
+            st.setCycleCount(2);
+            st.setAutoReverse(true);
+            st.play();
+
+            addToCart(p, amountField.getText(), finalPrice);
+        });
+
+        // Tooltip for full details
+        Tooltip tt = new Tooltip(p.getName() + "\n" + p.getType() + "\nPrice: $" + p.getPrice());
+        Tooltip.install(card, tt);
 
         card.getChildren().addAll(imgView, nameLbl, priceLbl, stockLbl, amountField, addBtn);
         return card;
