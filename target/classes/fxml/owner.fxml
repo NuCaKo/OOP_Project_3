@@ -41,7 +41,7 @@
                 </VBox>
             </Tab>
             
-            <Tab text="Orders & Carriers">
+            <Tab text="Orders &amp; Carriers">
                  <VBox spacing="10" style="-fx-padding: 20;">
                      <TableView fx:id="orderTable" VBox.vgrow="ALWAYS">
                          <columns>
