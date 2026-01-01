@@ -97,14 +97,14 @@ public class CustomerController {
 
     private VBox createProductCard(Product p) {
         VBox card = new VBox(10);
-        card.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 15; " +
-                      "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);");
+        card.getStyleClass().add("product-card");
         card.setPrefWidth(200);
         card.setAlignment(Pos.CENTER);
 
         ImageView imgView = new ImageView(); 
-        imgView.setFitHeight(100);
-        imgView.setFitWidth(100);
+        imgView.setFitHeight(120);
+        imgView.setFitWidth(120);
+        imgView.setPreserveRatio(true);
         
         java.io.InputStream is = DatabaseAdapter.getInstance().getProductImage(p.getId());
         if (is != null) {
@@ -112,7 +112,7 @@ public class CustomerController {
         }
         
         Label nameLbl = new Label(p.getName());
-        nameLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+        nameLbl.getStyleClass().add("product-title");
         
         double displayPrice = p.getPrice();
         if (p.getStock() <= p.getThreshold()) {
@@ -120,7 +120,10 @@ public class CustomerController {
         }
         
         Label priceLbl = new Label("$" + String.format("%.2f", displayPrice) + " / kg");
+        priceLbl.getStyleClass().add("product-price");
+
         Label stockLbl = new Label("Stock: " + p.getStock() + " kg");
+        stockLbl.getStyleClass().add("product-stock");
         
         TextField amountField = new TextField();
         amountField.setPromptText("kg");
@@ -132,8 +135,11 @@ public class CustomerController {
         if (p.getStock() <= 0) {
             addBtn.setDisable(true);
             addBtn.setText("Out of Stock");
-            stockLbl.setStyle("-fx-text-fill: red;");
+            stockLbl.getStyleClass().add("product-stock-low");
             amountField.setDisable(true);
+        } else if (p.getStock() <= p.getThreshold()) {
+            stockLbl.getStyleClass().add("product-stock-low");
+            stockLbl.setText("Low Stock: " + p.getStock() + " kg");
         }
         
         addBtn.setOnAction(e -> addToCart(p, amountField.getText(), finalPrice));

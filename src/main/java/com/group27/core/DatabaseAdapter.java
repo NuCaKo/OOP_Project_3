@@ -208,21 +208,34 @@ public class DatabaseAdapter {
     }
 
     private byte[] generateImage(String text, Color bgColor) {
-        int width = 200;
-        int height = 200;
+        int width = 250;
+        int height = 250;
         BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = bufferedImage.createGraphics();
 
-        g2d.setColor(bgColor);
+        // Gradient Background
+        java.awt.GradientPaint gp = new java.awt.GradientPaint(0, 0, bgColor.brighter(), 0, height, bgColor.darker());
+        g2d.setPaint(gp);
         g2d.fillRect(0, 0, width, height);
-        g2d.setColor(Color.BLACK);
-        g2d.setFont(new Font("Arial", Font.BOLD, 24));
         
+        // Inner Border
+        g2d.setColor(new Color(255, 255, 255, 100));
+        g2d.setStroke(new java.awt.BasicStroke(5));
+        g2d.drawRect(10, 10, width - 20, height - 20);
+
+        // Text Shadow
+        g2d.setFont(new Font("Segoe UI", Font.BOLD, 28));
         java.awt.FontMetrics fm = g2d.getFontMetrics();
         int x = (width - fm.stringWidth(text)) / 2;
         int y = (height - fm.getHeight()) / 2 + fm.getAscent();
         
+        g2d.setColor(new Color(0, 0, 0, 50));
+        g2d.drawString(text, x + 2, y + 2);
+
+        // Text
+        g2d.setColor(Color.WHITE);
         g2d.drawString(text, x, y);
+
         g2d.dispose();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
