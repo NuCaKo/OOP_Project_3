@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.Insets?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.LoginController" stylesheets="@../css/style.css">
+    <VBox alignment="CENTER" spacing="20" maxWidth="400" maxHeight="500" styleClass="liquid-glass-pane">
+        <padding>
+            <Insets top="40" right="40" bottom="40" left="40"/>
+        </padding>
+
+        <Label text="Local GreenGrocer" styleClass="title-label"/>
+
+        <VBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Username:"/>
+            <TextField fx:id="usernameField" promptText="Enter your username"/>
+        </VBox>
+
+        <VBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Password:"/>
+            <PasswordField fx:id="passwordField" promptText="Enter your password"/>
+        </VBox>
+        
+        <VBox fx:id="registerPane" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+             <Label text="Address:"/>
+             <TextField fx:id="addressField" promptText="Enter your address"/>
+             <Label text="Role:"/>
+             <ComboBox fx:id="roleComboBox" promptText="Select Role"/>
+        </VBox>
+
+        <Label fx:id="errorLabel" styleClass="error-label" visible="false"/>
+
+        <HBox spacing="10" alignment="CENTER">
+            <Button fx:id="actionButton" text="Login" onAction="#handleLogin"/>
+        </HBox>
+        
+        <Button fx:id="toggleButton" text="Don't have an account? Register" styleClass="button-secondary" onAction="#toggleMode"/>
+
+    </VBox>
+</StackPane>

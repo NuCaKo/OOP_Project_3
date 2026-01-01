@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.CustomerController" stylesheets="@../css/style.css">
+    <top>
+        <HBox spacing="20" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+            <Label fx:id="welcomeLabel" text="Welcome, User" styleClass="title-label"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <TextField fx:id="searchField" promptText="Search products..." prefWidth="300" onKeyReleased="#handleSearch"/>
+            <Button text="My Cart" onAction="#openCart"/>
+            <Button text="My Orders" onAction="#openOrders"/>
+            <Button text="Logout" onAction="#handleLogout"/>
+        </HBox>
+    </top>
+    
+    <center>
+        <SplitPane dividerPositions="0.7">
+            <!-- Left Side: Products in TitledPanes -->
+            <ScrollPane fitToWidth="true">
+                <Accordion expandedPane="$vegPaneTitled">
+                    <panes>
+                        <TitledPane fx:id="vegPaneTitled" text="Vegetables" styleClass="category-header-veg">
+                             <FlowPane fx:id="vegPane" hgap="15" vgap="15" style="-fx-padding: 15;" alignment="TOP_LEFT"/>
+                        </TitledPane>
+                        <TitledPane fx:id="fruitPaneTitled" text="Fruits" styleClass="category-header-fruit">
+                             <FlowPane fx:id="fruitPane" hgap="15" vgap="15" style="-fx-padding: 15;" alignment="TOP_LEFT"/>
+                        </TitledPane>
+                    </panes>
+                </Accordion>
+            </ScrollPane>
+            
+            <!-- Right Side: Messages & Extras (To keep clean layout) -->
+            <VBox spacing="10" style="-fx-padding: 20;">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="My Profile" styleClass="title-label"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Toggle" onAction="#toggleProfile" style="-fx-font-size: 10px;"/>
+                </HBox>
+
+                <VBox fx:id="profileBox" spacing="10" managed="false" visible="false">
+                    <TextField fx:id="editAddressField" promptText="Edit Address"/>
+                    <PasswordField fx:id="editPasswordField" promptText="New Password"/>
+                    <Button text="Update Profile" onAction="#updateProfile"/>
+                </VBox>
+
+                <Separator/>
+
+                <Label text="Cart Preview" style="-fx-font-weight: bold;"/>
+                <ListView fx:id="miniCartList" prefHeight="150"/>
+                
+                <Separator/>
+                
+                <Label text="Messages" styleClass="title-label"/>
+                <TextArea fx:id="messageInput" promptText="Write a message to the owner..." prefHeight="80"/>
+                <Button text="Send Message" onAction="#sendMessage"/>
+                <Label text="Inbox:" style="-fx-font-weight: bold;"/>
+                <ListView fx:id="messageList" VBox.vgrow="ALWAYS"/>
+            </VBox>
+        </SplitPane>
+    </center>
+</BorderPane>

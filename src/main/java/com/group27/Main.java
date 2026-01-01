@@ -11,11 +11,14 @@ import java.io.IOException;
 public class Main extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        DatabaseAdapter db = DatabaseAdapter.getInstance();
-        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/fxml/hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-        stage.setTitle("Group27 GreenGrocer"); // İstenen başlık formatı
+        // Initialize DB
+        DatabaseAdapter.getInstance();
+        
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/fxml/login.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 960, 540);
+        stage.setTitle("Group27 GreenGrocer - Login");
         stage.setScene(scene);
+        stage.centerOnScreen();
         stage.show();
     }
 

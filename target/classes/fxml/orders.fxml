@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.OrderController" stylesheets="@../css/style.css" spacing="10" style="-fx-padding: 20; -fx-background-color: #f1f8e9;">
+    <Label text="My Orders" styleClass="title-label"/>
+    <ListView fx:id="ordersListView" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;"/>
+</VBox>
