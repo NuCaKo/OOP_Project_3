@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.CartController" spacing="20" styleClass="liquid-glass-pane" stylesheets="@../css/style.css">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Your Shopping Cart" styleClass="title-label"/>
+
+    <TableView fx:id="cartTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="nameCol" text="Product" prefWidth="150"/>
+            <TableColumn fx:id="priceCol" text="Price/kg" prefWidth="100"/>
+            <TableColumn fx:id="amountCol" text="Amount (kg)" prefWidth="100"/>
+            <TableColumn fx:id="totalCol" text="Total" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <HBox spacing="20" alignment="CENTER_RIGHT">
+        <Label text="Delivery Date:"/>
+        <DatePicker fx:id="deliveryDate" promptText="Select Date"/>
+        <TextField fx:id="deliveryTime" promptText="HH:mm" prefWidth="80"/>
+    </HBox>
+    
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <TextField fx:id="couponField" promptText="Coupon Code"/>
+        <Button text="Apply" onAction="#applyCoupon"/>
+    </HBox>
+
+    <HBox spacing="20" alignment="CENTER_RIGHT">
+        <VBox alignment="CENTER_RIGHT">
+            <Label fx:id="subtotalLabel" text="Subtotal: $0.00"/>
+            <Label fx:id="taxLabel" text="VAT (18%): $0.00"/>
+            <Label fx:id="discountLabel" text="Discount: -$0.00" style="-fx-text-fill: green;"/>
+            <Label fx:id="totalLabel" text="Total: $0.00" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+        </VBox>
+        <Button text="Checkout" onAction="#handleCheckout" styleClass="button"/>
+    </HBox>
+</VBox>

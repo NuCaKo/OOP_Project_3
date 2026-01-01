@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.CarrierController" stylesheets="@../css/style.css">
+    <top>
+         <HBox spacing="20" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+            <Label text="Carrier Dashboard" styleClass="title-label"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Logout" onAction="#handleLogout"/>
+        </HBox>
+    </top>
+    
+    <center>
+        <HBox spacing="20" style="-fx-padding: 20;">
+            <!-- Available Orders -->
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                <Label text="Available Orders" style="-fx-font-weight: bold;"/>
+                <TableView fx:id="availableTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="avIdCol" text="ID" prefWidth="50"/>
+                        <TableColumn fx:id="avDateCol" text="Delivery Date" prefWidth="120"/>
+                        <TableColumn fx:id="avTotalCol" text="Total" prefWidth="80"/>
+                    </columns>
+                </TableView>
+                <Button text="Take Selected Order" onAction="#takeOrder"/>
+            </VBox>
+            
+            <!-- My Current Orders -->
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                <Label text="My Selected Orders" style="-fx-font-weight: bold;"/>
+                <TableView fx:id="myTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="myIdCol" text="ID" prefWidth="50"/>
+                        <TableColumn fx:id="myDateCol" text="Delivery Date" prefWidth="120"/>
+                        <TableColumn fx:id="myTotalCol" text="Total" prefWidth="80"/>
+                    </columns>
+                </TableView>
+                <Button text="Mark as Delivered" onAction="#completeOrder"/>
+            </VBox>
+            
+             <!-- Completed Orders (History) -->
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                <Label text="Completed Orders" style="-fx-font-weight: bold;"/>
+                <TableView fx:id="completedTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="cpIdCol" text="ID" prefWidth="50"/>
+                        <TableColumn fx:id="cpDateCol" text="Date" prefWidth="120"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>

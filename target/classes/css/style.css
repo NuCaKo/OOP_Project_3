@@ -1,0 +1,52 @@
+.root {
+    -fx-background-color: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+    -fx-font-family: "Segoe UI", "Helvetica", "Arial", sans-serif;
+}
+
+.liquid-glass-pane {
+    -fx-background-color: rgba(255, 255, 255, 0.7);
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 10, 0, 0, 5);
+    -fx-border-color: rgba(255, 255, 255, 0.5);
+    -fx-border-width: 1;
+}
+
+.title-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #343a40;
+}
+
+.text-field {
+    -fx-background-color: rgba(255, 255, 255, 0.8);
+    -fx-background-radius: 10;
+    -fx-border-color: #ced4da;
+    -fx-border-radius: 10;
+    -fx-padding: 10;
+}
+
+.button {
+    -fx-background-color: #007bff;
+    -fx-text-fill: white;
+    -fx-background-radius: 10;
+    -fx-padding: 10 20;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #0056b3;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 123, 255, 0.3), 10, 0, 0, 3);
+}
+
+.button-secondary {
+    -fx-background-color: transparent;
+    -fx-text-fill: #007bff;
+    -fx-underline: true;
+}
+
+.error-label {
+    -fx-text-fill: #dc3545;
+    -fx-font-size: 12px;
+}

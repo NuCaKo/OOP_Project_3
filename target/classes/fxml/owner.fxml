@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.OwnerController" stylesheets="@../css/style.css">
+    <top>
+         <HBox spacing="20" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+            <Label text="Owner Dashboard" styleClass="title-label"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Logout" onAction="#handleLogout"/>
+        </HBox>
+    </top>
+    
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE">
+            <Tab text="Manage Products">
+                <VBox spacing="10" style="-fx-padding: 20;">
+                    <TableView fx:id="productTable" VBox.vgrow="ALWAYS">
+                        <columns>
+                             <TableColumn fx:id="idCol" text="ID" prefWidth="50"/>
+                             <TableColumn fx:id="nameCol" text="Name" prefWidth="150"/>
+                             <TableColumn fx:id="typeCol" text="Type" prefWidth="100"/>
+                             <TableColumn fx:id="priceCol" text="Price" prefWidth="100"/>
+                             <TableColumn fx:id="stockCol" text="Stock" prefWidth="100"/>
+                             <TableColumn fx:id="thresholdCol" text="Threshold" prefWidth="100"/>
+                        </columns>
+                    </TableView>
+                    
+                    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                        <TextField fx:id="pName" promptText="Name"/>
+                        <ComboBox fx:id="pType" promptText="Type"/>
+                        <TextField fx:id="pPrice" promptText="Price" prefWidth="80"/>
+                        <TextField fx:id="pStock" promptText="Stock" prefWidth="80"/>
+                        <TextField fx:id="pThreshold" promptText="Threshold" prefWidth="80"/>
+                        <Button text="Add Product" onAction="#addProduct"/>
+                        <Button text="Update Selected" onAction="#updateProduct"/>
+                        <Button text="Delete Selected" onAction="#deleteProduct"/>
+                    </HBox>
+                </VBox>
+            </Tab>
+            
+            <Tab text="Orders & Carriers">
+                 <VBox spacing="10" style="-fx-padding: 20;">
+                     <TableView fx:id="orderTable" VBox.vgrow="ALWAYS">
+                         <columns>
+                             <TableColumn fx:id="orderIdCol" text="Order ID" prefWidth="80"/>
+                             <TableColumn fx:id="orderDateCol" text="Date" prefWidth="150"/>
+                             <TableColumn fx:id="orderTotalCol" text="Total" prefWidth="100"/>
+                             <TableColumn fx:id="carrierCol" text="Carrier ID" prefWidth="80"/>
+                             <TableColumn fx:id="statusCol" text="Status" prefWidth="100"/>
+                         </columns>
+                     </TableView>
+                 </VBox>
+            </Tab>
+
+            <Tab text="Reports">
+                <VBox spacing="20" style="-fx-padding: 20;" alignment="CENTER">
+                    <Label text="Financial Reports" styleClass="title-label"/>
+                    <HBox spacing="20" alignment="CENTER">
+                        <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20;">
+                             <Label text="Total Revenue"/>
+                             <Label fx:id="totalRevenueLabel" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
+                        </VBox>
+                         <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20;">
+                             <Label text="Total Orders"/>
+                             <Label fx:id="totalOrdersLabel" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
+                        </VBox>
+                    </HBox>
+                    <javafx.scene.chart.BarChart fx:id="salesChart" title="Revenue by Product Type">
+                        <xAxis>
+                             <javafx.scene.chart.CategoryAxis side="BOTTOM" label="Product Type"/>
+                        </xAxis>
+                        <yAxis>
+                             <javafx.scene.chart.NumberAxis side="LEFT" label="Revenue ($)"/>
+                        </yAxis>
+                    </javafx.scene.chart.BarChart>
+                </VBox>
+            </Tab>
+             
+             <Tab text="Messages">
+                 <HBox spacing="10" style="-fx-padding: 20;">
+                     <ListView fx:id="messageList" HBox.hgrow="ALWAYS"/>
+                     <VBox spacing="10">
+                         <TextArea fx:id="replyInput" promptText="Reply..." prefHeight="100"/>
+                         <Button text="Send Reply" onAction="#sendReply"/>
+                     </VBox>
+                 </HBox>
+             </Tab>
+             
+             <Tab text="Carriers">
+                 <VBox spacing="10" style="-fx-padding: 20;">
+                      <Label text="Manage Carriers" styleClass="title-label"/>
+                      <ListView fx:id="carrierList" VBox.vgrow="ALWAYS"/>
+                      <HBox spacing="10">
+                          <TextField fx:id="carrierUsername" promptText="Username"/>
+                          <TextField fx:id="carrierPassword" promptText="Password"/>
+                          <Button text="Add Carrier" onAction="#addCarrier"/>
+                          <Button text="Remove Selected" onAction="#removeCarrier"/>
+                      </HBox>
+                 </VBox>
+             </Tab>
+              
+              <Tab text="Coupons">
+                 <VBox spacing="10" style="-fx-padding: 20;">
+                      <Label text="Manage Coupons" styleClass="title-label"/>
+                      <ListView fx:id="couponList" VBox.vgrow="ALWAYS"/>
+                      <HBox spacing="10">
+                          <TextField fx:id="couponCode" promptText="Code"/>
+                          <TextField fx:id="couponDiscount" promptText="Discount ($)"/>
+                          <TextField fx:id="couponMinSpend" promptText="Min Spend"/>
+                          <Button text="Add Coupon" onAction="#addCoupon"/>
+                          <Button text="Remove Selected" onAction="#removeCoupon"/>
+                      </HBox>
+                 </VBox>
+              </Tab>
+        </TabPane>
+    </center>
+</BorderPane>

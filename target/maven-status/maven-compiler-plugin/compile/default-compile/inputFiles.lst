@@ -1,4 +1,15 @@
-/app/src/main/java/com/group27/HelloController.java
+/app/src/main/java/com/group27/Launcher.java
 /app/src/main/java/com/group27/Main.java
+/app/src/main/java/com/group27/controller/CarrierController.java
+/app/src/main/java/com/group27/controller/CartController.java
+/app/src/main/java/com/group27/controller/CustomerController.java
+/app/src/main/java/com/group27/controller/LoginController.java
+/app/src/main/java/com/group27/controller/OwnerController.java
 /app/src/main/java/com/group27/core/DatabaseAdapter.java
+/app/src/main/java/com/group27/model/Message.java
+/app/src/main/java/com/group27/model/Order.java
+/app/src/main/java/com/group27/model/Product.java
+/app/src/main/java/com/group27/model/User.java
+/app/src/main/java/com/group27/utils/InvoiceGenerator.java
+/app/src/main/java/com/group27/utils/UserSession.java
 /app/src/main/java/module-info.java
