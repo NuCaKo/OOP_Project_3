@@ -51,8 +51,8 @@ public class InvoiceGenerator {
 
     private static void saveInvoiceToDB(int orderId, ByteArrayInputStream pdfStream) {
         String query = "UPDATE OrderInfo SET invoice = ? WHERE id = ?";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
              
             // Using setBlob or setBinaryStream for MEDIUMTEXT/BLOB column
             // The schema said MEDIUMTEXT (CLOB), but requirements said CLOB. 
