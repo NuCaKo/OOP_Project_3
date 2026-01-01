@@ -55,7 +55,7 @@
 
 .button:pressed {
     -fx-background-color: #2e7d32;
-    -fx-effect: inner-shadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);
+    -fx-effect: innershadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 0);
 }
 
 .button-secondary {
