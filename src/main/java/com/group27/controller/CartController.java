@@ -119,8 +119,8 @@ public class CartController {
         } else {
             // DB check for coupons
             String query = "SELECT discount_amount, min_spend FROM Coupons WHERE code = ? AND active = TRUE";
-            try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
+            Connection conn = DatabaseAdapter.getInstance().getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.setString(1, code);
                 ResultSet rs = stmt.executeQuery();
                 if (rs.next()) {
@@ -275,7 +275,7 @@ public class CartController {
             showAlert("Error", "Transaction failed: " + e.getMessage());
         } finally {
             if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ex) { ex.printStackTrace(); }
+                try { conn.setAutoCommit(true); /* Do not close shared connection */ } catch (SQLException ex) { ex.printStackTrace(); }
             }
         }
     }
@@ -283,8 +283,8 @@ public class CartController {
     private void updateLoyaltyPoints(int userId, int points) {
         if (userId <= 0) return;
         String query = "UPDATE UserInfo SET loyalty_points = loyalty_points + ? WHERE id = ?";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, points);
             stmt.setInt(2, userId);
             stmt.executeUpdate();

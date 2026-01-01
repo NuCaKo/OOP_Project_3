@@ -70,8 +70,9 @@ public class CarrierController {
         completedList.clear();
         
         String query = "SELECT * FROM OrderInfo";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             ResultSet rs = conn.createStatement().executeQuery(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 LocalDateTime ot = rs.getTimestamp("ordertime") != null ? rs.getTimestamp("ordertime").toLocalDateTime() : null;
                 LocalDateTime dt = rs.getTimestamp("deliverytime") != null ? rs.getTimestamp("deliverytime").toLocalDateTime() : null;
@@ -107,8 +108,8 @@ public class CarrierController {
         
         // Fix: Concurrency check (only take if carrier_id is 0 or NULL)
         String query = "UPDATE OrderInfo SET carrier_id = ? WHERE id = ? AND (carrier_id = 0 OR carrier_id IS NULL)";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, carrierId);
             stmt.setInt(2, selected.getId());
             int rows = stmt.executeUpdate();
@@ -131,8 +132,8 @@ public class CarrierController {
         if (selected == null) return;
         
         String query = "UPDATE OrderInfo SET isdelivered = TRUE WHERE id = ?";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, selected.getId());
             stmt.executeUpdate();
             refreshTables();

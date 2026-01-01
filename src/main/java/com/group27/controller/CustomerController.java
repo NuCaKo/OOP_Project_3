@@ -56,8 +56,8 @@ public class CustomerController {
         DatabaseAdapter db = DatabaseAdapter.getInstance();
         String query = "SELECT * FROM ProductInfo ORDER BY name";
         
-        try (Connection conn = db.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query);
+        Connection conn = db.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
             
             while (rs.next()) {
@@ -196,8 +196,8 @@ public class CustomerController {
         int ownerId = 3; 
         
         String query = "INSERT INTO Messages (sender_id, receiver_id, content) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, user.getId());
             stmt.setInt(2, ownerId);
             stmt.setString(3, content);
@@ -219,8 +219,8 @@ public class CustomerController {
         if (user == null) return;
         
         String query = "SELECT * FROM Messages WHERE sender_id = ? ORDER BY timestamp DESC";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, user.getId());
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
@@ -251,8 +251,8 @@ public class CustomerController {
             DatabaseAdapter db = DatabaseAdapter.getInstance();
             String query = "SELECT * FROM OrderInfo WHERE user_id = ? ORDER BY ordertime DESC";
             
-            try (Connection conn = db.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
+            Connection conn = db.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.setInt(1, user.getId());
                 ResultSet rs = stmt.executeQuery();
                 
@@ -339,8 +339,8 @@ public class CustomerController {
     private void rateCarrier(int orderId, int stars, int userId) {
         // Validate ownership and status
         String query = "UPDATE OrderInfo SET carrier_rating = ? WHERE id = ? AND user_id = ? AND isdelivered = TRUE";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, stars);
             stmt.setInt(2, orderId);
             stmt.setInt(3, userId);
@@ -361,8 +361,8 @@ public class CustomerController {
         // Check eligibility: Not delivered, Time < 1 hour since order
         String checkQuery = "SELECT ordertime, isdelivered, products FROM OrderInfo WHERE id = ? AND user_id = ?";
         
-        try (Connection conn = db.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(checkQuery)) {
+        Connection conn = db.getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(checkQuery)) {
             stmt.setInt(1, orderId);
             stmt.setInt(2, userId);
             ResultSet rs = stmt.executeQuery();
@@ -428,8 +428,8 @@ public class CustomerController {
         }
         query += " WHERE id = ?";
         
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             
             stmt.setString(1, newAddr);
             int paramIdx = 2;

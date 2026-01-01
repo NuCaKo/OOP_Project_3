@@ -139,8 +139,9 @@ public class OwnerController {
         if (messageList == null) return;
         messageList.getItems().clear();
         String query = "SELECT * FROM Messages ORDER BY timestamp DESC";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             ResultSet rs = conn.createStatement().executeQuery(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 LocalDateTime ts = rs.getTimestamp("timestamp").toLocalDateTime();
                 messageList.getItems().add(new com.group27.model.Message(
@@ -176,8 +177,8 @@ public class OwnerController {
         if (msg == null || replyInput.getText().isEmpty()) return;
         
         String query = "UPDATE Messages SET reply = ? WHERE id = ?";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, replyInput.getText());
             stmt.setInt(2, msg.getId());
             stmt.executeUpdate();
@@ -202,8 +203,9 @@ public class OwnerController {
                        "WHERE u.role = 'carrier' " +
                        "GROUP BY u.id, u.username";
                        
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             ResultSet rs = conn.createStatement().executeQuery(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 String name = rs.getString("username");
                 double rating = rs.getDouble("avg_rating"); // returns 0 if null usually or check null
@@ -234,8 +236,8 @@ public class OwnerController {
         if (selected == null) return;
         
         String query = "DELETE FROM UserInfo WHERE username = ? AND role = 'carrier'";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             // Parse "username (Rating..."
             String username = selected.split(" \\(")[0];
             stmt.setString(1, username);
@@ -250,8 +252,9 @@ public class OwnerController {
         if (couponList == null) return;
         couponList.getItems().clear();
         String query = "SELECT * FROM Coupons";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             ResultSet rs = conn.createStatement().executeQuery(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 String c = rs.getString("code") + " - $" + rs.getDouble("discount_amount") + " off (Min $" + rs.getDouble("min_spend") + ")";
                 couponList.getItems().add(c);
@@ -269,8 +272,8 @@ public class OwnerController {
             double minSpend = Double.parseDouble(couponMinSpend.getText());
             
             String query = "INSERT INTO Coupons (code, discount_amount, min_spend) VALUES (?, ?, ?)";
-            try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
+            Connection conn = DatabaseAdapter.getInstance().getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.setString(1, code);
                 stmt.setDouble(2, discount);
                 stmt.setDouble(3, minSpend);
@@ -293,8 +296,8 @@ public class OwnerController {
         // Parse code "CODE - ..."
         String code = selected.split(" - ")[0];
         String query = "DELETE FROM Coupons WHERE code = ?";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, code);
             stmt.executeUpdate();
             loadCoupons();
@@ -325,8 +328,9 @@ public class OwnerController {
     private void loadProducts() {
         productList.clear();
         String query = "SELECT * FROM ProductInfo";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             ResultSet rs = conn.createStatement().executeQuery(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 productList.add(new Product(
                         rs.getInt("id"),
@@ -346,8 +350,9 @@ public class OwnerController {
     private void loadOrders() {
         orderList.clear();
         String query = "SELECT * FROM OrderInfo";
-        try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-             ResultSet rs = conn.createStatement().executeQuery(query)) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 LocalDateTime ot = rs.getTimestamp("ordertime") != null ? rs.getTimestamp("ordertime").toLocalDateTime() : null;
                 LocalDateTime dt = rs.getTimestamp("deliverytime") != null ? rs.getTimestamp("deliverytime").toLocalDateTime() : null;
@@ -383,8 +388,8 @@ public class OwnerController {
             }
 
             String query = "INSERT INTO ProductInfo (name, type, price, stock, threshold) VALUES (?, ?, ?, ?, ?)";
-            try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
+            Connection conn = DatabaseAdapter.getInstance().getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.setString(1, name);
                 stmt.setString(2, type);
                 stmt.setDouble(3, price);
@@ -417,8 +422,8 @@ public class OwnerController {
             }
             
             String query = "UPDATE ProductInfo SET name=?, type=?, price=?, stock=?, threshold=? WHERE id=?";
-            try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
+            Connection conn = DatabaseAdapter.getInstance().getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.setString(1, pName.getText());
                 stmt.setString(2, pType.getValue());
                 stmt.setDouble(3, price);
@@ -441,8 +446,8 @@ public class OwnerController {
         
         try {
              String query = "DELETE FROM ProductInfo WHERE id=?";
-             try (Connection conn = DatabaseAdapter.getInstance().getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
+             Connection conn = DatabaseAdapter.getInstance().getConnection();
+             try (PreparedStatement stmt = conn.prepareStatement(query)) {
                  stmt.setInt(1, selected.getId());
                  stmt.executeUpdate();
                  loadProducts();
