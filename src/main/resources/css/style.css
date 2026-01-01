@@ -173,3 +173,23 @@
     -fx-font-size: 12px;
     -fx-font-weight: bold;
 }
+
+.qty-button {
+    -fx-background-color: #e0e0e0;
+    -fx-text-fill: #333;
+    -fx-background-radius: 50%;
+    -fx-min-width: 25px;
+    -fx-min-height: 25px;
+    -fx-max-width: 25px;
+    -fx-max-height: 25px;
+    -fx-font-weight: bold;
+    -fx-padding: 0;
+}
+
+.qty-button:hover {
+    -fx-background-color: #bdbdbd;
+}
+
+.qty-button:pressed {
+    -fx-background-color: #9e9e9e;
+}

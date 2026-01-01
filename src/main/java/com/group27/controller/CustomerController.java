@@ -124,19 +124,40 @@ public class CustomerController {
 
         Label stockLbl = new Label("Stock: " + p.getStock() + " kg");
         stockLbl.getStyleClass().add("product-stock");
+
+        // Quantity Controls
+        HBox qtyBox = new HBox(5);
+        qtyBox.setAlignment(Pos.CENTER);
+
+        Button minusBtn = new Button("-");
+        minusBtn.getStyleClass().add("qty-button");
+        Label qtyLabel = new Label("1.0");
+        qtyLabel.setStyle("-fx-font-weight: bold; -fx-min-width: 30; -fx-alignment: center;");
+        Button plusBtn = new Button("+");
+        plusBtn.getStyleClass().add("qty-button");
+
+        minusBtn.setOnAction(e -> {
+            double val = Double.parseDouble(qtyLabel.getText());
+            if (val > 0.25) qtyLabel.setText(String.format("%.2f", val - 0.25));
+        });
+
+        plusBtn.setOnAction(e -> {
+            double val = Double.parseDouble(qtyLabel.getText());
+            if (val < p.getStock()) qtyLabel.setText(String.format("%.2f", val + 0.25));
+        });
         
-        TextField amountField = new TextField();
-        amountField.setPromptText("kg");
-        amountField.setMaxWidth(80);
+        qtyBox.getChildren().addAll(minusBtn, qtyLabel, plusBtn);
         
         Button addBtn = new Button("Add to Cart");
+        addBtn.setMaxWidth(Double.MAX_VALUE);
         double finalPrice = displayPrice;
         
         if (p.getStock() <= 0) {
             addBtn.setDisable(true);
             addBtn.setText("Out of Stock");
             stockLbl.getStyleClass().add("product-stock-low");
-            amountField.setDisable(true);
+            minusBtn.setDisable(true);
+            plusBtn.setDisable(true);
         } else if (p.getStock() <= p.getThreshold()) {
             stockLbl.getStyleClass().add("product-stock-low");
             stockLbl.setText("Low Stock: " + p.getStock() + " kg");
@@ -145,21 +166,47 @@ public class CustomerController {
         addBtn.setOnAction(e -> {
             // Animation for visual feedback
             javafx.animation.ScaleTransition st = new javafx.animation.ScaleTransition(javafx.util.Duration.millis(100), addBtn);
-            st.setByX(0.2);
-            st.setByY(0.2);
+            st.setByX(0.1);
+            st.setByY(0.1);
             st.setCycleCount(2);
             st.setAutoReverse(true);
             st.play();
 
-            addToCart(p, amountField.getText(), finalPrice);
+            addToCart(p, qtyLabel.getText(), finalPrice);
         });
 
-        // Tooltip for full details
-        Tooltip tt = new Tooltip(p.getName() + "\n" + p.getType() + "\nPrice: $" + p.getPrice());
-        Tooltip.install(card, tt);
+        // Product Details on Image Click
+        imgView.setOnMouseClicked(e -> showProductDetails(p));
+        imgView.setCursor(javafx.scene.Cursor.HAND);
 
-        card.getChildren().addAll(imgView, nameLbl, priceLbl, stockLbl, amountField, addBtn);
+        card.getChildren().addAll(imgView, nameLbl, priceLbl, stockLbl, qtyBox, addBtn);
         return card;
+    }
+
+    private void showProductDetails(Product p) {
+        Alert info = new Alert(Alert.AlertType.INFORMATION);
+        info.setTitle(p.getName() + " Details");
+        info.setHeaderText(null);
+
+        VBox content = new VBox(10);
+        content.setAlignment(Pos.CENTER);
+
+        ImageView img = new ImageView();
+        img.setFitWidth(150);
+        img.setFitHeight(150);
+        img.setPreserveRatio(true);
+        java.io.InputStream is = DatabaseAdapter.getInstance().getProductImage(p.getId());
+        if (is != null) img.setImage(new javafx.scene.image.Image(is));
+
+        Label type = new Label("Category: " + p.getType());
+        Label price = new Label("Price: $" + p.getPrice() + " / kg");
+        Label stock = new Label("Available: " + p.getStock() + " kg");
+        Label desc = new Label("Fresh " + p.getName() + " sourced directly from local farms.");
+        desc.setWrapText(true);
+
+        content.getChildren().addAll(img, type, price, stock, new Separator(), desc);
+        info.getDialogPane().setContent(content);
+        info.showAndWait();
     }
 
     private void addToCart(Product p, String amountStr, double priceAtMoment) {
