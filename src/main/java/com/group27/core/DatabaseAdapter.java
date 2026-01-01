@@ -26,7 +26,9 @@ public class DatabaseAdapter {
 
     private DatabaseAdapter() {
         connect();
-        initializeDatabase();
+        // Database initialization is handled by database.sql
+        // We only ensure images are loaded if missing because BLOBs are hard to seed via SQL script
+        refreshAllProductImages();
     }
 
     public static DatabaseAdapter getInstance() {
@@ -38,12 +40,6 @@ public class DatabaseAdapter {
 
     private void connect() {
         try {
-            // First connect without DB to create it if not exists
-            try (Connection setupConn = DriverManager.getConnection(BASE_URL, DB_USER, DB_PASS);
-                 Statement stmt = setupConn.createStatement()) {
-                stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + DB_NAME);
-            }
-
             // Connect to the specific DB
             connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
             System.out.println("Veritabanı bağlantısı başarılı!");
@@ -51,138 +47,6 @@ public class DatabaseAdapter {
             System.err.println("Veritabanı bağlantı hatası: " + e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    private void initializeDatabase() {
-        try (Statement stmt = getConnection().createStatement()) {
-            // UserInfo table
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS UserInfo (" +
-                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "username VARCHAR(50) UNIQUE NOT NULL, " +
-                    "password VARCHAR(50) NOT NULL, " +
-                    "role VARCHAR(20) NOT NULL, " +
-                    "address VARCHAR(255), " +
-                    "loyalty_points INT DEFAULT 0)");
-
-            // Coupons table
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Coupons (" +
-                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "code VARCHAR(20) UNIQUE, " +
-                    "discount_amount DOUBLE, " +
-                    "min_spend DOUBLE, " +
-                    "active BOOLEAN DEFAULT TRUE)");
-
-            // ProductInfo table
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ProductInfo (" +
-                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "name VARCHAR(50) NOT NULL, " +
-                    "type VARCHAR(20) NOT NULL, " +
-                    "price DOUBLE NOT NULL, " +
-                    "stock DOUBLE NOT NULL, " +
-                    "threshold DOUBLE NOT NULL, " +
-                    "imagelocation BLOB)");
-
-            // OrderInfo table
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS OrderInfo (" +
-                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "ordertime DATETIME, " +
-                    "deliverytime DATETIME, " +
-                    "products TEXT, " + // Storing as JSON or simple text list for now (CLOB-like)
-                    "user_id INT, " +
-                    "carrier_id INT, " +
-                    "isdelivered BOOLEAN DEFAULT FALSE, " +
-                    "totalcost DOUBLE, " +
-                    "invoice MEDIUMTEXT, " + // CLOB for invoice
-                    "carrier_rating INT DEFAULT 0, " +
-                    "FOREIGN KEY (user_id) REFERENCES UserInfo(id))");
-
-            // Messages table
-            stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Messages (" +
-                    "id INT AUTO_INCREMENT PRIMARY KEY, " +
-                    "sender_id INT, " +
-                    "receiver_id INT, " +
-                    "content TEXT, " +
-                    "reply TEXT, " +
-                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                    "FOREIGN KEY (sender_id) REFERENCES UserInfo(id))");
-
-            seedData();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void seedData() throws SQLException {
-        // Seed Users
-        if (!hasData("UserInfo")) {
-            String insertUser = "INSERT INTO UserInfo (username, password, role, address) VALUES (?, ?, ?, ?)";
-            try (PreparedStatement pstmt = getConnection().prepareStatement(insertUser)) {
-                // Customer
-                pstmt.setString(1, "cust");
-                pstmt.setString(2, "cust");
-                pstmt.setString(3, "customer");
-                pstmt.setString(4, "123 Apple St");
-                pstmt.addBatch();
-                // Carrier
-                pstmt.setString(1, "carr");
-                pstmt.setString(2, "carr");
-                pstmt.setString(3, "carrier");
-                pstmt.setString(4, "Carrier Station");
-                pstmt.addBatch();
-                // Owner
-                pstmt.setString(1, "own");
-                pstmt.setString(2, "own");
-                pstmt.setString(3, "owner");
-                pstmt.setString(4, "HQ");
-                pstmt.addBatch();
-                pstmt.executeBatch();
-            }
-        }
-
-        // Seed Coupons
-        if (!hasData("Coupons")) {
-            String insertCoupon = "INSERT INTO Coupons (code, discount_amount, min_spend) VALUES (?, ?, ?)";
-            try (PreparedStatement pstmt = getConnection().prepareStatement(insertCoupon)) {
-                 pstmt.setString(1, "WELCOME2025");
-                 pstmt.setDouble(2, 10.0);
-                 pstmt.setDouble(3, 50.0);
-                 pstmt.executeUpdate();
-            }
-        }
-
-        // Seed Products
-        if (!hasData("ProductInfo")) {
-            String insertProduct = "INSERT INTO ProductInfo (name, type, price, stock, threshold, imagelocation) VALUES (?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement pstmt = getConnection().prepareStatement(insertProduct)) {
-                String[] veg = {"Tomato", "Potato", "Onion", "Carrot", "Cucumber", "Pepper", "Lettuce", "Spinach", "Broccoli", "Cauliflower", "Garlic", "Zucchini"};
-                String[] fruit = {"Apple", "Banana", "Orange", "Grape", "Strawberry", "Watermelon", "Melon", "Peach", "Pear", "Cherry", "Plum", "Kiwi"};
-
-                for (String v : veg) {
-                    pstmt.setString(1, v);
-                    pstmt.setString(2, "Vegetable");
-                    pstmt.setDouble(3, 2.0 + (Math.random() * 5)); // Random price
-                    pstmt.setDouble(4, 100.0);
-                    pstmt.setDouble(5, 10.0);
-                    byte[] img = generateProductImage(v, "Vegetable");
-                    pstmt.setBytes(6, img);
-                    pstmt.addBatch();
-                }
-                for (String f : fruit) {
-                    pstmt.setString(1, f);
-                    pstmt.setString(2, "Fruit");
-                    pstmt.setDouble(3, 3.0 + (Math.random() * 10));
-                    pstmt.setDouble(4, 100.0);
-                    pstmt.setDouble(5, 10.0);
-                    byte[] img = generateProductImage(f, "Fruit");
-                    pstmt.setBytes(6, img);
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
-            }
-        }
-
-        // Always refresh images to new style
-        refreshAllProductImages();
     }
     
     private void refreshAllProductImages() {
