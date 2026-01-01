@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class CustomerController {
@@ -138,12 +139,12 @@ public class CustomerController {
 
         minusBtn.setOnAction(e -> {
             double val = Double.parseDouble(qtyLabel.getText());
-            if (val > 0.25) qtyLabel.setText(String.format("%.2f", val - 0.25));
+            if (val > 0.25) qtyLabel.setText(String.format(Locale.US, "%.2f", val - 0.25));
         });
 
         plusBtn.setOnAction(e -> {
             double val = Double.parseDouble(qtyLabel.getText());
-            if (val < p.getStock()) qtyLabel.setText(String.format("%.2f", val + 0.25));
+            if (val < p.getStock()) qtyLabel.setText(String.format(Locale.US, "%.2f", val + 0.25));
         });
         
         qtyBox.getChildren().addAll(minusBtn, qtyLabel, plusBtn);
