@@ -312,8 +312,23 @@ public class CustomerController {
         if (is != null) img.setImage(new javafx.scene.image.Image(is));
 
         Label type = new Label("Category: " + p.getType());
-        Label price = new Label("Price: $" + p.getPrice() + " / kg");
+        
+        double displayPrice = p.getPrice();
+        if (p.getStock() <= p.getThreshold()) {
+            displayPrice *= 2.0;
+        }
+        
+        Label price = new Label("Price: $" + String.format("%.2f", displayPrice) + " / kg");
+        if (p.getStock() <= p.getThreshold()) {
+            price.setStyle("-fx-text-fill: #d32f2f; -fx-font-weight: bold;");
+            price.setText("Price: $" + String.format("%.2f", displayPrice) + " / kg (⚠️ Threshold Price - Stock ≤ " + p.getThreshold() + " kg)");
+        }
+        
         Label stock = new Label("Available: " + p.getStock() + " kg");
+        if (p.getStock() <= p.getThreshold()) {
+            stock.setStyle("-fx-text-fill: #d32f2f;");
+            stock.setText("⚠️ Low Stock: " + p.getStock() + " kg (Threshold: " + p.getThreshold() + " kg)");
+        }
         Label desc = new Label("Fresh " + p.getName() + " sourced directly from local farms.");
         desc.setWrapText(true);
 
