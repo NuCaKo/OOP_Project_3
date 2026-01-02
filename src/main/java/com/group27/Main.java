@@ -18,11 +18,16 @@ public class Main extends Application {
         Scene scene = new Scene(fxmlLoader.load(), 960, 540);
         stage.setTitle("Group27 GreenGrocer - Login");
         stage.setScene(scene);
+        stage.setResizable(false); // macOS uyumluluk için
         stage.centerOnScreen();
         stage.show();
     }
 
     public static void main(String[] args) {
+        // macOS için JVM argümanları
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("com.apple.mrj.application.apple.menu.about.name", "GreenGrocer");
+        
         launch();
     }
 }
