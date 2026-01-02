@@ -1,5 +1,4 @@
 
-
 DROP DATABASE IF EXISTS greengrocer_db;
 CREATE DATABASE greengrocer_db;
 USE greengrocer_db;
@@ -7,7 +6,7 @@ USE greengrocer_db;
 CREATE TABLE UserInfo (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(50) NOT NULL,
+    password VARCHAR(64) NOT NULL,
     role VARCHAR(20) NOT NULL,
     address VARCHAR(255),
     loyalty_points INT DEFAULT 0
@@ -18,7 +17,19 @@ CREATE TABLE Coupons (
     code VARCHAR(20) UNIQUE,
     discount_amount DOUBLE,
     min_spend DOUBLE,
-    active BOOLEAN DEFAULT TRUE
+    active BOOLEAN DEFAULT TRUE,
+    point_cost INT DEFAULT 0,
+    description TEXT
+);
+
+CREATE TABLE UserCoupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    coupon_id INT,
+    used BOOLEAN DEFAULT FALSE,
+    acquired_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES UserInfo(id),
+    FOREIGN KEY (coupon_id) REFERENCES Coupons(id)
 );
 
 CREATE TABLE ProductInfo (
@@ -57,12 +68,16 @@ CREATE TABLE Messages (
 
 
 INSERT INTO UserInfo (username, password, role, address) VALUES 
-('cust', 'cust', 'customer', '123 Apple St'),
-('carr', 'carr', 'carrier', 'Carrier Station'),
-('own', 'own', 'owner', 'HQ');
+('cust', '80d26609c5226268981e4a6d4ceddbc339d991841ae580e3180b56c8ade7651d', 'customer', '123 Apple St'),
+('carr', 'f9356b0952e5681f9bb4969078d6762f1f3f3eb9e87b80d6544103ad918f074c', 'carrier', 'Carrier Station'),
+('own', '5b3975651c3cab92d044c096dc30a1c2d9525497457472de48c51ecb363d1f4a', 'owner', 'HQ');
 
-INSERT INTO Coupons (code, discount_amount, min_spend) VALUES 
-('WELCOME2025', 10.0, 50.0);
+INSERT INTO Coupons (code, discount_amount, min_spend, point_cost, description) VALUES
+('WELCOME2025', 10.0, 50.0, 0, 'Welcome coupon'),
+('SAVE5', 5.0, 25.0, 50, 'Small discount for starters'),
+('SAVE10', 10.0, 50.0, 100, 'Good value discount'),
+('SAVE20', 20.0, 100.0, 200, 'Great savings!'),
+('SAVE50', 50.0, 200.0, 500, 'Premium discount');
 
 
 SET @path = '/Users/nucako/Documents/GitHub/OOP_Project_3/src/main/resources/images/';

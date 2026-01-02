@@ -32,6 +32,10 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * Controller for the Owner interface.
+ * Handles product management, carrier management, coupon management, and reports.
+ */
 public class OwnerController {
 
     // Dashboard
@@ -100,6 +104,9 @@ public class OwnerController {
     private ObservableList<Product> filteredProductList = FXCollections.observableArrayList();
     private ObservableList<Order> orderList = FXCollections.observableArrayList();
 
+    /**
+     * Initializes the controller.
+     */
     @FXML
     public void initialize() {
         pType.getItems().addAll("Vegetable", "Fruit");
@@ -154,13 +161,9 @@ public class OwnerController {
         if (stockValueLabel != null)
             stockValueLabel.setText("$" + String.format("%.2f", stockValue));
             
-        // Low Stock Alerts
         updateLowStockAlerts();
-        
-        // Update order statistics
         updateOrderStatistics();
         
-        // Populate Chart
         if (salesChart != null) {
             salesChart.getData().clear();
             javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
@@ -169,7 +172,6 @@ public class OwnerController {
             series.getData().add(new javafx.scene.chart.XYChart.Data<>("Total Revenue", revenue));
             series.getData().add(new javafx.scene.chart.XYChart.Data<>("Stock Value", stockValue));
             
-            // Calculate pending orders value
             double pendingValue = orderList.stream()
                 .filter(o -> !o.isDelivered())
                 .mapToDouble(Order::getTotalCost)
@@ -298,10 +300,6 @@ public class OwnerController {
     private void loadCarriers() {
         if (carrierList == null) return;
         carrierList.getItems().clear();
-        // Calculate average rating for each carrier
-        // Need to join UserInfo with OrderInfo where carrier_id = user.id
-        // Complex query, let's do simple iterate or join.
-        // SELECT u.username, AVG(o.carrier_rating) FROM UserInfo u LEFT JOIN OrderInfo o ON u.id = o.carrier_id WHERE u.role='carrier' GROUP BY u.id
         
         String query = "SELECT u.id, u.username, AVG(NULLIF(o.carrier_rating, 0)) as avg_rating " +
                        "FROM UserInfo u " +
@@ -314,7 +312,7 @@ public class OwnerController {
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 String name = rs.getString("username");
-                double rating = rs.getDouble("avg_rating"); // returns 0 if null usually or check null
+                double rating = rs.getDouble("avg_rating");
                 if (rs.wasNull()) rating = 0.0;
                 
                 carrierList.getItems().add(name + " (Rating: " + String.format("%.1f", rating) + "/5)");
@@ -327,7 +325,16 @@ public class OwnerController {
     @FXML
     private void addCarrier() {
         if (carrierUsername.getText().isEmpty() || carrierPassword.getText().isEmpty()) return;
-        if (DatabaseAdapter.getInstance().registerUser(carrierUsername.getText(), carrierPassword.getText(), "carrier", "Station")) {
+        // Password hashing handled in DatabaseAdapter.registerUser or needs to be handled here if registerUser expects plain text and hashes it?
+        // Wait, DatabaseAdapter.registerUser expects hashed password now based on my earlier change?
+        // Let's check DatabaseAdapter.registerUser: "public boolean registerUser(String username, String password, String role, String address) { ... stmt.setString(2, password); ... }"
+        // It takes the string as is.
+        // In LoginController I added hashing before calling registerUser.
+        // So here I must also hash it.
+
+        String hashedPassword = com.group27.utils.PasswordUtil.hashPassword(carrierPassword.getText());
+
+        if (DatabaseAdapter.getInstance().registerUser(carrierUsername.getText(), hashedPassword, "carrier", "Station")) {
             loadCarriers();
             carrierUsername.clear();
             carrierPassword.clear();
@@ -344,10 +351,8 @@ public class OwnerController {
             return;
         }
         
-        // Parse "username (Rating..."
         String username = selected.split(" \\(")[0];
         
-        // Get carrier ID
         String getCarrierIdQuery = "SELECT id FROM UserInfo WHERE username = ? AND role = 'carrier'";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
         int carrierId = 0;
@@ -367,7 +372,6 @@ public class OwnerController {
             return;
         }
         
-        // Check if carrier has pending (undelivered) orders
         String checkPendingOrdersQuery = "SELECT COUNT(*) as pending_count FROM OrderInfo WHERE carrier_id = ? AND isdelivered = FALSE";
         try (PreparedStatement stmt = conn.prepareStatement(checkPendingOrdersQuery)) {
             stmt.setInt(1, carrierId);
@@ -387,7 +391,6 @@ public class OwnerController {
             return;
         }
         
-        // Safe to remove - no pending orders
         String deleteQuery = "DELETE FROM UserInfo WHERE id = ? AND role = 'carrier'";
         try (PreparedStatement stmt = conn.prepareStatement(deleteQuery)) {
             stmt.setInt(1, carrierId);
@@ -449,7 +452,6 @@ public class OwnerController {
         String selected = couponList.getSelectionModel().getSelectedItem();
         if (selected == null) return;
         
-        // Parse code "CODE - ..."
         String code = selected.split(" - ")[0];
         String query = "DELETE FROM Coupons WHERE code = ?";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
@@ -486,13 +488,12 @@ public class OwnerController {
         orderIdCol.setCellValueFactory(d -> new SimpleIntegerProperty(d.getValue().getId()));
         orderDateCol.setCellValueFactory(d -> {
             LocalDateTime dt = d.getValue().getOrderTime();
-            return new SimpleObjectProperty<>(dt != null ? dt.toString().replace("T", " ") : "N/A");
+            return new SimpleStringProperty(dt != null ? dt.toString().replace("T", " ") : "N/A");
         });
         
         if (orderProductsCol != null) {
             orderProductsCol.setCellValueFactory(d -> {
                 String products = d.getValue().getProductsJson();
-                // Shorten for display: "Potato:2.0;Apple:1.0;" -> "Potato, Apple, ..."
                 if (products != null && !products.isEmpty()) {
                     String[] items = products.split(";");
                     String display = java.util.Arrays.stream(items)
@@ -584,17 +585,14 @@ public class OwnerController {
     
     @FXML
     private void handleOrderFilter() {
-        // Implementation for order filtering can be added
         updateOrderStatistics();
     }
     
     private void updateReports() {
-        // Product-based Sales Chart
         if (productSalesChart != null) {
             productSalesChart.getData().clear();
             java.util.Map<String, Double> productSales = new java.util.HashMap<>();
             
-            // Parse products from orders and aggregate by product name
             for (Order order : orderList) {
                 String productsJson = order.getProductsJson();
                 if (productsJson != null && !productsJson.isEmpty()) {
@@ -624,12 +622,10 @@ public class OwnerController {
             productSalesChart.getData().add(series);
         }
         
-        // Time-based Sales Chart
         if (timeSalesChart != null) {
             timeSalesChart.getData().clear();
             java.util.Map<String, Double> dailyRevenue = new java.util.HashMap<>();
             
-            // Group orders by date
             for (Order order : orderList) {
                 if (order.getOrderTime() != null) {
                     String dateKey = order.getOrderTime().format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"));
@@ -639,7 +635,6 @@ public class OwnerController {
             
             javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
             series.setName("Revenue ($)");
-            // Sort by date for better visualization
             java.util.List<String> sortedDates = new java.util.ArrayList<>(dailyRevenue.keySet());
             java.util.Collections.sort(sortedDates);
             for (String date : sortedDates) {
@@ -648,7 +643,6 @@ public class OwnerController {
             timeSalesChart.getData().add(series);
         }
         
-        // Money-based Revenue Chart (Pie Chart)
         if (revenueChart != null) {
             revenueChart.getData().clear();
             

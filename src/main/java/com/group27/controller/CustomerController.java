@@ -833,11 +833,8 @@ public class CustomerController {
         infoLabel.setStyle("-fx-font-weight: bold;");
         content.getChildren().add(infoLabel);
         
-        // Offer predefined coupons based on points
-        addCouponOffer(content, user, "SAVE5", 5.0, 25.0, 50, "Small discount for starters");
-        addCouponOffer(content, user, "SAVE10", 10.0, 50.0, 100, "Good value discount");
-        addCouponOffer(content, user, "SAVE20", 20.0, 100.0, 200, "Great savings!");
-        addCouponOffer(content, user, "SAVE50", 50.0, 200.0, 500, "Premium discount");
+        // Load coupons from DB
+        loadCouponOffers(content, user);
         
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
@@ -849,7 +846,37 @@ public class CustomerController {
         dialog.showAndWait();
     }
     
-    private void addCouponOffer(VBox parent, com.group27.model.User user, String code, 
+    private void loadCouponOffers(VBox parent, com.group27.model.User user) {
+        String query = "SELECT * FROM Coupons WHERE point_cost > 0 AND active = TRUE ORDER BY point_cost ASC";
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+
+        try (PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            boolean hasCoupons = false;
+            while(rs.next()) {
+                hasCoupons = true;
+                int id = rs.getInt("id");
+                String code = rs.getString("code");
+                double discount = rs.getDouble("discount_amount");
+                double minSpend = rs.getDouble("min_spend");
+                int pointCost = rs.getInt("point_cost");
+                String desc = rs.getString("description");
+
+                addCouponOffer(parent, user, id, code, discount, minSpend, pointCost, desc);
+            }
+
+            if (!hasCoupons) {
+                parent.getChildren().add(new Label("No coupons available for redemption at the moment."));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            parent.getChildren().add(new Label("Error loading coupons."));
+        }
+    }
+
+    private void addCouponOffer(VBox parent, com.group27.model.User user, int couponId, String code,
                                 double discount, double minSpend, int pointCost, String description) {
         VBox offerBox = new VBox(8);
         offerBox.setStyle("-fx-padding: 12; -fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;");
@@ -871,20 +898,27 @@ public class CustomerController {
         Label detailLabel = new Label(String.format("$%.2f off on orders $%.2f+", discount, minSpend));
         detailLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
         
-        Label descLabel = new Label(description);
+        Label descLabel = new Label(description != null ? description : "");
         descLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #999; -fx-font-style: italic;");
         
         Button redeemBtn = new Button("Redeem");
         redeemBtn.setMaxWidth(Double.MAX_VALUE);
         
-        if (user.getLoyaltyPoints() < pointCost) {
+        // Check if user already has this coupon (unused)
+        boolean alreadyHas = checkUserHasCoupon(user.getId(), couponId);
+
+        if (alreadyHas) {
+            redeemBtn.setDisable(true);
+            redeemBtn.setText("Already Redeemed");
+            redeemBtn.setStyle("-fx-text-fill: #4caf50;");
+        } else if (user.getLoyaltyPoints() < pointCost) {
             redeemBtn.setDisable(true);
             redeemBtn.setText("Not enough points");
             redeemBtn.setStyle("-fx-text-fill: #999;");
         }
         
         redeemBtn.setOnAction(e -> {
-            redeemCoupon(user, code, discount, minSpend, pointCost);
+            redeemCoupon(user, couponId, code, pointCost);
             ((Stage) redeemBtn.getScene().getWindow()).close();
         });
         
@@ -892,43 +926,24 @@ public class CustomerController {
         parent.getChildren().add(offerBox);
     }
     
-    private void redeemCoupon(com.group27.model.User user, String code, double discount, 
-                             double minSpend, int pointCost) {
+    private boolean checkUserHasCoupon(int userId, int couponId) {
+        String query = "SELECT id FROM UserCoupons WHERE user_id = ? AND coupon_id = ? AND used = FALSE";
+        try (PreparedStatement stmt = DatabaseAdapter.getInstance().getConnection().prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            stmt.setInt(2, couponId);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private void redeemCoupon(com.group27.model.User user, int couponId, String code, int pointCost) {
         Connection conn = DatabaseAdapter.getInstance().getConnection();
         
         try {
             conn.setAutoCommit(false);
-            
-            // Check if coupon exists, if not create it
-            String checkCoupon = "SELECT id FROM Coupons WHERE code = ?";
-            int couponId = -1;
-            
-            try (PreparedStatement stmt = conn.prepareStatement(checkCoupon)) {
-                stmt.setString(1, code);
-                ResultSet rs = stmt.executeQuery();
-                if (rs.next()) {
-                    couponId = rs.getInt("id");
-                } else {
-                    // Create coupon
-                    String createCoupon = "INSERT INTO Coupons (code, discount_amount, min_spend, active) VALUES (?, ?, ?, TRUE)";
-                    try (PreparedStatement createStmt = conn.prepareStatement(createCoupon, Statement.RETURN_GENERATED_KEYS)) {
-                        createStmt.setString(1, code);
-                        createStmt.setDouble(2, discount);
-                        createStmt.setDouble(3, minSpend);
-                        createStmt.executeUpdate();
-                        ResultSet keys = createStmt.getGeneratedKeys();
-                        if (keys.next()) {
-                            couponId = keys.getInt(1);
-                        }
-                    }
-                }
-            }
-            
-            if (couponId == -1) {
-                conn.rollback();
-                showAlert("Error", "Failed to create coupon");
-                return;
-            }
             
             // Add coupon to user
             String addUserCoupon = "INSERT INTO UserCoupons (user_id, coupon_id) VALUES (?, ?)";

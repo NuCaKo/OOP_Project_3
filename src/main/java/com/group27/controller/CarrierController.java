@@ -39,6 +39,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+/**
+ * Controller for the Carrier interface.
+ * Handles order management for carriers.
+ */
 public class CarrierController {
 
     @FXML private Label carrierNameLabel;
@@ -70,6 +74,9 @@ public class CarrierController {
     
     private int carrierId;
 
+    /**
+     * Initializes the controller class.
+     */
     @FXML
     public void initialize() {
         com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
@@ -83,6 +90,9 @@ public class CarrierController {
         refreshTables();
     }
     
+    /**
+     * Sets up the table columns and data sources.
+     */
     private void setupTables() {
         // Available Orders - Enable multiple selection
         availableTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -120,6 +130,9 @@ public class CarrierController {
         completedTable.setItems(completedList);
     }
     
+    /**
+     * Retrieves customer username by ID.
+     */
     private String getCustomerName(int userId) {
         String query = "SELECT username FROM UserInfo WHERE id = ?";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
@@ -135,6 +148,9 @@ public class CarrierController {
         return "Unknown";
     }
     
+    /**
+     * Retrieves customer address by ID.
+     */
     private String getCustomerAddress(int userId) {
         String query = "SELECT address FROM UserInfo WHERE id = ?";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
@@ -151,10 +167,12 @@ public class CarrierController {
         return "No address";
     }
     
+    /**
+     * Generates a summary string of products in an order.
+     */
     private String getProductSummary(String productsString) {
         if (productsString == null || productsString.isEmpty()) return "N/A";
         
-        // Format: "Apple:2.5;Banana:1.0;"
         String[] items = productsString.split(";");
         int count = 0;
         for (String item : items) {
@@ -165,6 +183,9 @@ public class CarrierController {
         return count + " item(s)";
     }
     
+    /**
+     * Refreshes the order tables.
+     */
     @FXML
     private void refreshTables() {
         availableList.clear();
@@ -182,7 +203,7 @@ public class CarrierController {
                 Order o = new Order(
                         rs.getInt("id"),
                         rs.getInt("user_id"),
-                        rs.getInt("carrier_id"), // 0 if null/default
+                        rs.getInt("carrier_id"),
                         ot,
                         dt,
                         rs.getString("products"),
@@ -203,6 +224,9 @@ public class CarrierController {
         }
     }
 
+    /**
+     * Assigns selected available orders to the current carrier.
+     */
     @FXML
     private void takeOrder() {
         List<Order> selectedOrders = availableTable.getSelectionModel().getSelectedItems();
@@ -215,7 +239,6 @@ public class CarrierController {
             return;
         }
         
-        // Confirm action
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirm Selection");
         confirm.setHeaderText(null);
@@ -224,7 +247,6 @@ public class CarrierController {
             return;
         }
         
-        // Take orders (with concurrency check)
         String query = "UPDATE OrderInfo SET carrier_id = ? WHERE id = ? AND (carrier_id = 0 OR carrier_id IS NULL)";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
         int successCount = 0;
@@ -247,7 +269,6 @@ public class CarrierController {
                 }
             }
             
-            // Show result
             Alert result = new Alert(Alert.AlertType.INFORMATION);
             result.setTitle("Result");
             result.setHeaderText(null);
@@ -261,6 +282,9 @@ public class CarrierController {
         }
     }
     
+    /**
+     * Marks selected orders as completed (delivered).
+     */
     @FXML
     private void completeOrder() {
         List<Order> selectedOrders = myTable.getSelectionModel().getSelectedItems();
@@ -273,7 +297,6 @@ public class CarrierController {
             return;
         }
         
-        // Confirm with delivery date/time input
         Dialog<LocalDateTime> dialog = new Dialog<>();
         dialog.setTitle("Complete Delivery");
         dialog.setHeaderText("Mark " + selectedOrders.size() + " order(s) as delivered");
@@ -281,7 +304,6 @@ public class CarrierController {
         ButtonType confirmButtonType = new ButtonType("Confirm Delivery", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
         
-        // Create date/time picker
         VBox content = new VBox(10);
         content.setPadding(new Insets(20));
         
@@ -307,7 +329,6 @@ public class CarrierController {
         content.getChildren().addAll(infoLabel, new Label("Date:"), datePicker, timeBox);
         dialog.getDialogPane().setContent(content);
         
-        // Convert result to LocalDateTime
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == confirmButtonType) {
                 return LocalDateTime.of(
@@ -350,35 +371,21 @@ public class CarrierController {
 
     @FXML
     private void viewAvailableDetails() {
-        Order selected = availableTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("No Selection");
-            alert.setHeaderText(null);
-            alert.setContentText("Please select an order to view details.");
-            alert.showAndWait();
-            return;
-        }
-        showOrderDetails(selected);
+        viewDetails(availableTable);
     }
     
     @FXML
     private void viewMyDetails() {
-        Order selected = myTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            Alert alert = new Alert(Alert.AlertType.WARNING);
-            alert.setTitle("No Selection");
-            alert.setHeaderText(null);
-            alert.setContentText("Please select an order to view details.");
-            alert.showAndWait();
-            return;
-        }
-        showOrderDetails(selected);
+        viewDetails(myTable);
     }
     
     @FXML
     private void viewCompletedDetails() {
-        Order selected = completedTable.getSelectionModel().getSelectedItem();
+        viewDetails(completedTable);
+    }
+
+    private void viewDetails(TableView<Order> table) {
+        Order selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
             Alert alert = new Alert(Alert.AlertType.WARNING);
             alert.setTitle("No Selection");
@@ -399,7 +406,6 @@ public class CarrierController {
         content.setPadding(new Insets(20));
         content.setStyle("-fx-background-color: #f5f5f5;");
         
-        // Customer Information
         VBox customerBox = new VBox(8);
         customerBox.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
         Label customerTitle = new Label("👤 Customer Information");
@@ -413,7 +419,6 @@ public class CarrierController {
         addressLabel.setWrapText(true);
         customerBox.getChildren().addAll(customerTitle, nameLabel, addressLabel);
         
-        // Order Information
         VBox orderBox = new VBox(8);
         orderBox.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
         Label orderTitle = new Label("📦 Order Information");
@@ -427,7 +432,6 @@ public class CarrierController {
         
         orderBox.getChildren().addAll(orderTitle, orderIdLabel, orderTimeLabel, deliveryTimeLabel);
         
-        // Products Information
         VBox productsBox = new VBox(8);
         productsBox.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
         Label productsTitle = new Label("🛒 Products");
@@ -441,7 +445,6 @@ public class CarrierController {
         
         productsBox.getChildren().addAll(productsTitle, productsArea);
         
-        // Financial Information
         VBox financialBox = new VBox(8);
         financialBox.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5;");
         Label financialTitle = new Label("💰 Financial Details");
@@ -471,8 +474,6 @@ public class CarrierController {
         if (productsString == null || productsString.isEmpty()) return "No products";
         
         StringBuilder details = new StringBuilder();
-        
-        // Format: "Apple:2.5;Banana:1.0;Cherry:3.0;"
         String[] items = productsString.split(";");
         int index = 1;
         

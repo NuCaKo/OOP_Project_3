@@ -1,6 +1,7 @@
 package com.group27.controller;
 
 import com.group27.core.DatabaseAdapter;
+import com.group27.utils.PasswordUtil;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
@@ -39,9 +40,10 @@ public class LoginController {
         }
 
         DatabaseAdapter db = DatabaseAdapter.getInstance();
+        String hashedPassword = PasswordUtil.hashPassword(password);
 
         if (isLoginMode) {
-            if (db.login(username, password)) {
+            if (db.login(username, hashedPassword)) {
                 com.group27.model.User user = db.getUserByUsername(username);
                 com.group27.utils.UserSession.getInstance().setCurrentUser(user);
                 
@@ -66,7 +68,7 @@ public class LoginController {
                  return;
             }
 
-            if (db.registerUser(username, password, role, address)) {
+            if (db.registerUser(username, hashedPassword, role, address)) {
                 showError("Registration successful! Please login."); // Using error label for success msg momentarily
                 errorLabel.setStyle("-fx-text-fill: green;");
                 toggleMode();

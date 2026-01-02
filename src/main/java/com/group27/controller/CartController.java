@@ -24,8 +24,14 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * Controller for the Shopping Cart interface.
+ */
 public class CartController {
 
+    /**
+     * Inner class representing an item in the cart.
+     */
     public static class CartItem {
         private Product product;
         private double amount;
@@ -48,11 +54,14 @@ public class CartController {
 
     public static ObservableList<CartItem> getCartItems() { return cartItems; }
 
+    /**
+     * Adds an item to the cart or updates quantity if it exists.
+     */
     public static void addItem(Product p, double amount, double price) {
         for (CartItem item : cartItems) {
             if (item.getProduct().getId() == p.getId()) {
                 item.addAmount(amount);
-                // Trigger listener by removing and re-adding to ensure change is detected
+                // Trigger listener by removing and re-adding
                 int idx = cartItems.indexOf(item);
                 cartItems.remove(idx);
                 cartItems.add(idx, item);
@@ -87,8 +96,6 @@ public class CartController {
 
     @FXML
     public void initialize() {
-        System.out.println("DEBUG: CartController initialized. Cart items count: " + cartItems.size());
-        
         // Initialize time spinners
         if (hourSpinner != null) {
             javafx.scene.control.SpinnerValueFactory<Integer> hourFactory = 
@@ -104,15 +111,9 @@ public class CartController {
             minuteSpinner.setEditable(true);
         }
         
-        if (cartListView == null) {
-            System.out.println("ERROR: cartListView is NULL!");
-            return;
-        }
+        if (cartListView == null) return;
         
         cartListView.setItems(cartItems);
-        System.out.println("DEBUG: cartListView.setItems called with " + cartItems.size() + " items");
-        
-        // Force refresh
         cartListView.refresh();
         cartListView.setCellFactory(param -> new ListCell<>() {
             @Override
@@ -127,7 +128,6 @@ public class CartController {
                     card.getStyleClass().add("liquid-glass-pane");
                     card.setStyle("-fx-padding: 10; -fx-background-color: rgba(255,255,255,0.9);");
 
-                    // Image
                     javafx.scene.image.ImageView img = new javafx.scene.image.ImageView();
                     img.setFitHeight(50);
                     img.setFitWidth(50);
@@ -136,18 +136,15 @@ public class CartController {
                     java.io.InputStream is = DatabaseAdapter.getInstance().getProductImage(item.getProduct().getId());
                     if (is != null) img.setImage(new javafx.scene.image.Image(is));
 
-                    // Info
                     javafx.scene.layout.VBox info = new javafx.scene.layout.VBox(5);
                     Label nameLbl = new Label(item.getProduct().getName());
                     nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
                     Label priceLbl = new Label("$" + String.format("%.2f", item.getPriceAtMoment()) + " / kg");
                     info.getChildren().addAll(nameLbl, priceLbl);
 
-                    // Controls
                     javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
                     javafx.scene.layout.HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
 
-                    // Quantity controls
                     javafx.scene.layout.HBox qtyBox = new javafx.scene.layout.HBox(5);
                     qtyBox.setAlignment(javafx.geometry.Pos.CENTER);
                     
@@ -169,7 +166,6 @@ public class CartController {
                     Button plusBtn = new Button("+");
                     plusBtn.getStyleClass().add("qty-button");
                     plusBtn.setOnAction(e -> {
-                        // Check if we can add more (need to implement stock check)
                         item.addAmount(0.25);
                         int idx = cartItems.indexOf(item);
                         cartItems.remove(idx);
@@ -203,22 +199,17 @@ public class CartController {
         double subtotal = cartItems.stream().mapToDouble(CartItem::getTotal).sum();
         double vat = subtotal * 0.18;
         
-        // Apply Loyalty Check (10% if points > 100) - Simple Logic
-        // In a real app, we fetch user points.
-        // Assuming we fetched it in Session or query.
-        
         double total = subtotal + vat - discountAmount;
         if (total < 0) total = 0;
         
-        subtotalLabel.setText("Subtotal: $" + String.format("%.2f", subtotal));
-        taxLabel.setText("VAT (18%): $" + String.format("%.2f", vat));
-        discountLabel.setText("Discount: -$" + String.format("%.2f", discountAmount));
-        totalLabel.setText("Total: $" + String.format("%.2f", total));
+        if (subtotalLabel != null) subtotalLabel.setText("Subtotal: $" + String.format("%.2f", subtotal));
+        if (taxLabel != null) taxLabel.setText("VAT (18%): $" + String.format("%.2f", vat));
+        if (discountLabel != null) discountLabel.setText("Discount: -$" + String.format("%.2f", discountAmount));
+        if (totalLabel != null) totalLabel.setText("Total: $" + String.format("%.2f", total));
     }
     
     @FXML
     private void applyCoupon() {
-        // Check if a coupon is already applied
         if (appliedCouponCode != null) {
             showAlert("Coupon Already Applied", 
                 "You can only use one coupon per order.\nPlease remove the current coupon (" + appliedCouponCode + ") to apply a different one.");
@@ -237,7 +228,6 @@ public class CartController {
             return;
         }
         
-        // Check if user owns this coupon and hasn't used it
         String checkQuery = "SELECT uc.id, c.discount_amount, c.min_spend " +
                            "FROM UserCoupons uc " +
                            "JOIN Coupons c ON uc.coupon_id = c.id " +
@@ -259,7 +249,6 @@ public class CartController {
                     discountAmount = discount;
                     updateTotal();
                     
-                    // Show coupon status
                     if (couponStatusBox != null) {
                         appliedCouponLabel.setText("✓ " + code + " applied (-$" + String.format("%.2f", discount) + ")");
                         couponStatusBox.setVisible(true);
@@ -290,7 +279,6 @@ public class CartController {
         discountAmount = 0;
         updateTotal();
         
-        // Hide coupon status
         if (couponStatusBox != null) {
             couponStatusBox.setVisible(false);
             couponStatusBox.setManaged(false);
@@ -309,7 +297,6 @@ public class CartController {
             return;
         }
         
-        // Check minimum cart value
         double subtotal = cartItems.stream().mapToDouble(CartItem::getTotal).sum();
         if (subtotal < MIN_CART_VALUE) {
             showAlert("Error", "Minimum cart value of $" + MIN_CART_VALUE + " not met.");
@@ -334,10 +321,6 @@ public class CartController {
             LocalTime time = LocalTime.of(hour, minute);
             LocalDateTime deliveryDateTime = LocalDateTime.of(date, time);
             
-            System.out.println("DEBUG: Selected Delivery: " + deliveryDateTime);
-            System.out.println("DEBUG: Current Time: " + LocalDateTime.now());
-            
-            // Delivery must be within 48 hours
             if (deliveryDateTime.isAfter(LocalDateTime.now().plusHours(48))) {
                 showAlert("Invalid Date", "⚠️ Delivery must be within 48 hours.\n\nPlease select a date and time within the next 2 days.");
                 return;
@@ -347,7 +330,6 @@ public class CartController {
                 return;
             }
             
-            // Proceed to save order
             saveOrder(deliveryDateTime);
             
         } catch (Exception e) {
@@ -361,8 +343,6 @@ public class CartController {
         com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
         int userId = (user != null) ? user.getId() : 0;
         
-        System.out.println("DEBUG: Saving order for UserID: " + userId);
-        
         if (userId == 0) {
             showAlert("Error", "User not logged in. Cannot checkout.");
             return;
@@ -373,7 +353,6 @@ public class CartController {
         double total = subtotal + vat - discountAmount;
         if (total < 0) total = 0;
         
-        // Serialize products to simple string (JSON-like)
         StringBuilder sb = new StringBuilder();
         for (CartItem item : cartItems) {
             sb.append(item.getProduct().getName())
@@ -382,22 +361,25 @@ public class CartController {
               .append(";");
         }
         
-        String insertOrder = "INSERT INTO OrderInfo (ordertime, deliverytime, products, user_id, totalcost, isdelivered) \n" +
-                "VALUES (NOW(), ?, ?, ?, ?, 0)";
+        // Generate Invoice String
+        String invoice = com.group27.utils.InvoiceGenerator.generateInvoice(0, user.getUsername(), sb.toString(), total);
+
+        String insertOrder = "INSERT INTO OrderInfo (ordertime, deliverytime, products, user_id, totalcost, isdelivered, invoice) \n" +
+                "VALUES (NOW(), ?, ?, ?, ?, 0, ?)";
         String updateStock = "UPDATE ProductInfo SET stock = stock - ? WHERE id = ?";
         
         Connection conn = null;
         try {
             conn = db.getConnection();
-            conn.setAutoCommit(false); // Start Transaction
+            conn.setAutoCommit(false);
 
-            // 1. Insert Order
             int orderId = 0;
             try (PreparedStatement stmt = conn.prepareStatement(insertOrder, Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setObject(1, deliveryTime);
                 stmt.setString(2, sb.toString());
                 stmt.setInt(3, userId);
                 stmt.setDouble(4, total);
+                stmt.setString(5, invoice); // Save invoice string
                 
                 int affectedRows = stmt.executeUpdate();
                 if (affectedRows == 0) throw new SQLException("Creating order failed, no rows affected.");
@@ -411,7 +393,6 @@ public class CartController {
                 }
             }
 
-            // 2. Update Stock
             try (PreparedStatement stockStmt = conn.prepareStatement(updateStock)) {
                 for (CartItem item : cartItems) {
                     stockStmt.setDouble(1, item.getAmount());
@@ -420,19 +401,11 @@ public class CartController {
                 }
             }
             
-            conn.commit(); // Commit Transaction
+            conn.commit();
             
-            // 3. Post-Transaction Actions (Invoice & Loyalty)
-            // Generate Invoice (Connection managed internally or passed? InvoiceGenerator uses new connection currently. It's fine.)
-            if (orderId > 0) {
-                com.group27.utils.InvoiceGenerator.generateAndSaveInvoice(orderId, cartItems, total);
-            }
-            
-            // Update Loyalty Points
             int pointsEarned = (int)total;
             updateLoyaltyPoints(userId, pointsEarned);
             
-            // Update user session with new points
             com.group27.model.User currentUser = com.group27.utils.UserSession.getInstance().getCurrentUser();
             if (currentUser != null) {
                 currentUser.setLoyaltyPoints(currentUser.getLoyaltyPoints() + pointsEarned);
@@ -450,7 +423,7 @@ public class CartController {
             showAlert("Error", "Transaction failed: " + e.getMessage());
         } finally {
             if (conn != null) {
-                try { conn.setAutoCommit(true); /* Do not close shared connection */ } catch (SQLException ex) { ex.printStackTrace(); }
+                try { conn.setAutoCommit(true); } catch (SQLException ex) { ex.printStackTrace(); }
             }
         }
     }

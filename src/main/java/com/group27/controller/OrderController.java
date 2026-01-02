@@ -17,6 +17,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 
+/**
+ * Controller for the Orders view.
+ */
 public class OrderController {
 
     @FXML private ListView<Order> ordersListView;
@@ -106,8 +109,6 @@ public class OrderController {
     }
 
     private void cancelOrder(Order order) {
-        // Logic similar to CustomerController but cleaner
-        // Check 1h window
         if (order.getOrderTime().plusHours(1).isBefore(LocalDateTime.now())) {
             Alert a = new Alert(Alert.AlertType.ERROR);
             a.setContentText("Cannot cancel order after 1 hour.");

@@ -1,6 +1,6 @@
 com/group27/controller/CarrierController.class
-com/group27/controller/CartController$1.class
 com/group27/controller/LoginController.class
+com/group27/controller/CartController$1.class
 com/group27/controller/CustomerController$1.class
 com/group27/Main.class
 com/group27/controller/OrderController$1$1.class
@@ -18,6 +18,7 @@ com/group27/controller/CustomerController.class
 com/group27/model/User.class
 com/group27/model/Product.class
 com/group27/controller/CartController.class
+com/group27/utils/PasswordUtil.class
 com/group27/controller/OrderController$1.class
 com/group27/utils/UserSession.class
 com/group27/Launcher.class
