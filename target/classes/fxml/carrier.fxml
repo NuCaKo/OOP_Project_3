@@ -7,49 +7,67 @@
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.CarrierController" stylesheets="@../css/style.css">
     <top>
          <HBox spacing="20" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
-            <Label text="Carrier Dashboard" styleClass="title-label"/>
+            <Label text="🚚 Carrier Dashboard" styleClass="title-label"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="carrierNameLabel" text="" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <Button text="Refresh" onAction="#refreshTables" styleClass="button-secondary"/>
             <Button text="Logout" onAction="#handleLogout"/>
         </HBox>
     </top>
     
     <center>
-        <HBox spacing="20" style="-fx-padding: 20;">
+        <HBox spacing="15" style="-fx-padding: 20;">
             <!-- Available Orders -->
-            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
-                <Label text="Available Orders" style="-fx-font-weight: bold;"/>
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                <Label text="📦 Available Orders" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
                 <TableView fx:id="availableTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="avIdCol" text="ID" prefWidth="50"/>
-                        <TableColumn fx:id="avDateCol" text="Delivery Date" prefWidth="120"/>
-                        <TableColumn fx:id="avTotalCol" text="Total" prefWidth="80"/>
+                        <TableColumn fx:id="avIdCol" text="ID" prefWidth="40"/>
+                        <TableColumn fx:id="avCustomerCol" text="Customer" prefWidth="100"/>
+                        <TableColumn fx:id="avAddressCol" text="Address" prefWidth="150"/>
+                        <TableColumn fx:id="avProductsCol" text="Products" prefWidth="120"/>
+                        <TableColumn fx:id="avDateCol" text="Delivery Date" prefWidth="130"/>
+                        <TableColumn fx:id="avTotalCol" text="Total ($)" prefWidth="80"/>
                     </columns>
                 </TableView>
-                <Button text="Take Selected Order" onAction="#takeOrder"/>
+                <HBox spacing="10">
+                    <Button text="📋 View Details" onAction="#viewAvailableDetails" styleClass="button-secondary"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="✓ Take Selected Orders" onAction="#takeOrder"/>
+                </HBox>
             </VBox>
             
             <!-- My Current Orders -->
-            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
-                <Label text="My Selected Orders" style="-fx-font-weight: bold;"/>
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                <Label text="🚛 My Selected Orders" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
                 <TableView fx:id="myTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="myIdCol" text="ID" prefWidth="50"/>
-                        <TableColumn fx:id="myDateCol" text="Delivery Date" prefWidth="120"/>
-                        <TableColumn fx:id="myTotalCol" text="Total" prefWidth="80"/>
+                        <TableColumn fx:id="myIdCol" text="ID" prefWidth="40"/>
+                        <TableColumn fx:id="myCustomerCol" text="Customer" prefWidth="100"/>
+                        <TableColumn fx:id="myAddressCol" text="Address" prefWidth="150"/>
+                        <TableColumn fx:id="myDateCol" text="Delivery Date" prefWidth="130"/>
+                        <TableColumn fx:id="myTotalCol" text="Total ($)" prefWidth="80"/>
                     </columns>
                 </TableView>
-                <Button text="Mark as Delivered" onAction="#completeOrder"/>
+                <HBox spacing="10">
+                    <Button text="📋 View Details" onAction="#viewMyDetails" styleClass="button-secondary"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="✅ Mark as Delivered" onAction="#completeOrder"/>
+                </HBox>
             </VBox>
             
              <!-- Completed Orders (History) -->
-            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
-                <Label text="Completed Orders" style="-fx-font-weight: bold;"/>
+            <VBox spacing="10" HBox.hgrow="ALWAYS" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                <Label text="✅ Completed Orders" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
                 <TableView fx:id="completedTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn fx:id="cpIdCol" text="ID" prefWidth="50"/>
-                        <TableColumn fx:id="cpDateCol" text="Date" prefWidth="120"/>
+                        <TableColumn fx:id="cpIdCol" text="ID" prefWidth="40"/>
+                        <TableColumn fx:id="cpCustomerCol" text="Customer" prefWidth="100"/>
+                        <TableColumn fx:id="cpDateCol" text="Completed" prefWidth="130"/>
+                        <TableColumn fx:id="cpTotalCol" text="Total ($)" prefWidth="80"/>
                     </columns>
                 </TableView>
+                <Button text="📋 View Details" onAction="#viewCompletedDetails" styleClass="button-secondary" maxWidth="Infinity"/>
             </VBox>
         </HBox>
     </center>
