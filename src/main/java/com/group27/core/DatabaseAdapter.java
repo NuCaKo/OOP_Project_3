@@ -9,6 +9,14 @@ import java.sql.SQLException;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 
+/**
+ * Singleton class that manages database connections and operations.
+ * Provides methods for user authentication, product retrieval, and
+ * database connection management. Uses MySQL database for data persistence.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class DatabaseAdapter {
     private static final String BASE_URL = "jdbc:mysql://localhost:3306/";
     private static final String DB_NAME = "greengrocer_db";
@@ -19,11 +27,21 @@ public class DatabaseAdapter {
     private Connection connection;
     private static DatabaseAdapter instance;
     
+    /**
+     * Private constructor to enforce singleton pattern.
+     * Initializes the database connection upon instantiation.
+     */
     private DatabaseAdapter() {
         connect();
 
     }
 
+    /**
+     * Returns the singleton instance of DatabaseAdapter.
+     * Creates a new instance if one doesn't exist.
+     * 
+     * @return The singleton DatabaseAdapter instance
+     */
     public static DatabaseAdapter getInstance() {
         if (instance == null) {
             instance = new DatabaseAdapter();
@@ -31,6 +49,10 @@ public class DatabaseAdapter {
         return instance;
     }
 
+    /**
+     * Establishes a connection to the MySQL database.
+     * Prints success or error messages to the console.
+     */
     private void connect() {
         try {
             connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
@@ -40,6 +62,12 @@ public class DatabaseAdapter {
         }
     }
 
+    /**
+     * Retrieves the product image from the database as an InputStream.
+     * 
+     * @param productId The ID of the product whose image is to be retrieved
+     * @return InputStream containing the product image, or null if not found or on error
+     */
     public InputStream getProductImage(int productId) {
         String query = "SELECT imagelocation FROM ProductInfo WHERE id = ?";
         try (PreparedStatement stmt = getConnection().prepareStatement(query)) {
@@ -58,6 +86,13 @@ public class DatabaseAdapter {
         return null;
     }
 
+    /**
+     * Authenticates a user with the provided username and password.
+     * 
+     * @param username The username to authenticate
+     * @param password The password to authenticate
+     * @return true if credentials are valid, false otherwise
+     */
     public boolean login(String username, String password) {
         String query = "SELECT * FROM UserInfo WHERE username = ? AND password = ?";
         try (PreparedStatement stmt = getConnection().prepareStatement(query)) {
@@ -71,6 +106,12 @@ public class DatabaseAdapter {
         }
     }
 
+    /**
+     * Retrieves a User object from the database by username.
+     * 
+     * @param username The username to search for
+     * @return User object if found, null otherwise
+     */
     public com.group27.model.User getUserByUsername(String username) {
         String query = "SELECT * FROM UserInfo WHERE username = ?";
         try (PreparedStatement stmt = getConnection().prepareStatement(query)) {
@@ -92,6 +133,15 @@ public class DatabaseAdapter {
         return null;
     }
 
+    /**
+     * Registers a new user in the database.
+     * 
+     * @param username The username for the new user
+     * @param password The password for the new user
+     * @param role The role of the user (customer, carrier, or owner)
+     * @param address The address of the user
+     * @return true if registration is successful, false otherwise
+     */
     public boolean registerUser(String username, String password, String role, String address) {
         String query = "INSERT INTO UserInfo (username, password, role, address) VALUES (?, ?, ?, ?)";
         try (PreparedStatement stmt = getConnection().prepareStatement(query)) {
@@ -107,6 +157,15 @@ public class DatabaseAdapter {
         }
     }
 
+    /**
+     * Calculates dynamic pricing based on stock levels.
+     * If stock is at or below the threshold, price is doubled.
+     * 
+     * @param basePrice The base price of the product
+     * @param stock The current stock level
+     * @param threshold The stock threshold that triggers price increase
+     * @return The calculated price (basePrice if stock > threshold, basePrice * 2.0 otherwise)
+     */
     public double calculateDynamicPrice(double basePrice, double stock, double threshold) {
         if (stock <= threshold) {
             return basePrice * 2.0;
@@ -114,6 +173,12 @@ public class DatabaseAdapter {
         return basePrice;
     }
 
+    /**
+     * Returns the database connection, reconnecting if necessary.
+     * Checks if the connection is null or closed and reconnects if needed.
+     * 
+     * @return The active database Connection object
+     */
     public Connection getConnection() {
         try {
             if (connection == null || connection.isClosed()) {

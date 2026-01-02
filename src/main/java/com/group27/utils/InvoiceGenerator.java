@@ -13,8 +13,24 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
+/**
+ * Utility class for generating PDF invoices and saving them to the database.
+ * Uses iText library to create PDF documents containing order details.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class InvoiceGenerator {
 
+    /**
+     * Generates a PDF invoice for an order and saves it to the database.
+     * The invoice includes order ID, list of items with quantities and prices,
+     * and the total cost. The PDF is stored as a Base64-encoded string in the database.
+     * 
+     * @param orderId The ID of the order for which to generate the invoice
+     * @param items List of CartItem objects representing the products in the order
+     * @param totalCost The total cost of the order
+     */
     public static void generateAndSaveInvoice(int orderId, List<CartItem> items, double totalCost) {
         Document document = new Document();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -49,6 +65,13 @@ public class InvoiceGenerator {
         }
     }
 
+    /**
+     * Saves the generated PDF invoice to the database.
+     * Converts the PDF to Base64 encoding and stores it in the OrderInfo table.
+     * 
+     * @param orderId The ID of the order to update with the invoice
+     * @param pdfStream InputStream containing the PDF data
+     */
     private static void saveInvoiceToDB(int orderId, ByteArrayInputStream pdfStream) {
         String query = "UPDATE OrderInfo SET invoice = ? WHERE id = ?";
         Connection conn = DatabaseAdapter.getInstance().getConnection();

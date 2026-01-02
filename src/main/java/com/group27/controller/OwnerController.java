@@ -32,6 +32,15 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * Controller class for the owner/admin interface.
+ * Manages product inventory, order management, customer messages,
+ * carrier management, coupon creation, and business analytics.
+ * Provides comprehensive dashboard with charts and reports.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class OwnerController {
 
     // Dashboard

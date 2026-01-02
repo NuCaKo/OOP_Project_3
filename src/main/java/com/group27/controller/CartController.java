@@ -24,13 +24,33 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * Controller class for the shopping cart interface.
+ * Manages cart items, calculates totals with VAT and discounts, handles
+ * coupon application, and processes order checkout. Also manages delivery
+ * date/time selection and order placement.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class CartController {
 
+    /**
+     * Represents an item in the shopping cart.
+     * Stores product information, quantity, and the price at the moment of addition.
+     */
     public static class CartItem {
         private Product product;
         private double amount;
         private double priceAtMoment;
 
+        /**
+         * Constructs a CartItem with the specified product, amount, and price.
+         * 
+         * @param product The product being added to the cart
+         * @param amount The quantity/amount of the product (in kg)
+         * @param priceAtMoment The price of the product at the time it was added
+         */
         public CartItem(Product product, double amount, double priceAtMoment) {
             this.product = product;
             this.amount = amount;
@@ -46,8 +66,20 @@ public class CartController {
 
     private static ObservableList<CartItem> cartItems = FXCollections.observableArrayList();
 
+    /**
+     * Gets the observable list of cart items.
+     * 
+     * @return The observable list of CartItem objects
+     */
     public static ObservableList<CartItem> getCartItems() { return cartItems; }
 
+    /**
+     * Adds an item to the cart or increases the quantity if the item already exists.
+     * 
+     * @param p The product to add
+     * @param amount The quantity to add
+     * @param price The price at the moment of addition
+     */
     public static void addItem(Product p, double amount, double price) {
         for (CartItem item : cartItems) {
             if (item.getProduct().getId() == p.getId()) {
@@ -62,6 +94,9 @@ public class CartController {
         cartItems.add(new CartItem(p, amount, price));
     }
     
+    /**
+     * Clears all items from the cart.
+     */
     public static void clearCart() {
         cartItems.clear();
     }

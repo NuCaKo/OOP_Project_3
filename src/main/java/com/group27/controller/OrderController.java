@@ -17,6 +17,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 
+/**
+ * Controller class for displaying and managing customer orders.
+ * Shows order history, allows order cancellation (within 1 hour),
+ * and provides rating functionality for delivered orders.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class OrderController {
 
     @FXML private ListView<Order> ordersListView;

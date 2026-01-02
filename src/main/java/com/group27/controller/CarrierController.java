@@ -39,6 +39,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+/**
+ * Controller class for the carrier/delivery interface.
+ * Manages order assignment, delivery tracking, and order completion.
+ * Allows carriers to view available orders, accept orders, and mark
+ * deliveries as completed.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class CarrierController {
 
     @FXML private Label carrierNameLabel;

@@ -9,6 +9,14 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import java.io.IOException;
 
+/**
+ * Controller class for the login and registration interface.
+ * Handles user authentication, registration, and navigation to role-specific screens.
+ * Supports switching between login and registration modes.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class LoginController {
 
     @FXML private TextField usernameField;
@@ -22,12 +30,21 @@ public class LoginController {
 
     private boolean isLoginMode = true;
 
+    /**
+     * Initializes the controller after FXML loading.
+     * Sets up the role combo box with available roles.
+     */
     @FXML
     public void initialize() {
         roleComboBox.getItems().addAll("customer", "carrier", "owner");
         roleComboBox.setValue("customer");
     }
 
+    /**
+     * Handles the login or registration action based on the current mode.
+     * Validates input fields, authenticates users, or registers new users.
+     * Navigates to the appropriate screen based on user role after successful login.
+     */
     @FXML
     private void handleLogin() {
         String username = usernameField.getText();
@@ -76,6 +93,10 @@ public class LoginController {
         }
     }
 
+    /**
+     * Toggles between login and registration modes.
+     * Updates the UI elements (button text, visibility) accordingly.
+     */
     @FXML
     private void toggleMode() {
         isLoginMode = !isLoginMode;
@@ -94,12 +115,23 @@ public class LoginController {
         }
     }
 
+    /**
+     * Displays an error message to the user.
+     * 
+     * @param message The error message to display
+     */
     private void showError(String message) {
         errorLabel.setText(message);
         errorLabel.setStyle("-fx-text-fill: #dc3545;");
         errorLabel.setVisible(true);
     }
 
+    /**
+     * Navigates to the appropriate screen based on the user's role.
+     * Loads the corresponding FXML file and updates the stage.
+     * 
+     * @param role The role of the user (customer, carrier, or owner)
+     */
     private void navigateToRole(String role) {
         try {
             Stage stage = (Stage) usernameField.getScene().getWindow();

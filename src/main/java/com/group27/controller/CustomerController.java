@@ -36,6 +36,15 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+/**
+ * Controller class for the customer interface.
+ * Manages product browsing, searching, cart operations, messaging with owner,
+ * profile editing, and loyalty points display. Handles all customer-specific
+ * functionality in the GreenGrocer application.
+ * 
+ * @author Group27
+ * @version 1.0
+ */
 public class CustomerController {
 
     @FXML private Label welcomeLabel;
