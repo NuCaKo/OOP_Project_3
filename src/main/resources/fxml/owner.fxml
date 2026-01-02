@@ -7,112 +7,221 @@
 <BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.OwnerController" stylesheets="@../css/style.css">
     <top>
          <HBox spacing="20" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
-            <Label text="Owner Dashboard" styleClass="title-label"/>
+            <Label text="🏪 Owner Dashboard" styleClass="title-label"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="lowStockAlert" text="" style="-fx-text-fill: #d32f2f; -fx-font-weight: bold;"/>
+            <Button text="Refresh" onAction="#refreshAll" styleClass="button-secondary"/>
             <Button text="Logout" onAction="#handleLogout"/>
         </HBox>
     </top>
     
     <center>
         <TabPane tabClosingPolicy="UNAVAILABLE">
-            <Tab text="Manage Products">
+            <Tab text="📊 Dashboard">
+                <ScrollPane fitToWidth="true" fitToHeight="true">
+                    <VBox spacing="20" style="-fx-padding: 20;">
+                        <!-- Key Metrics -->
+                        <HBox spacing="20" alignment="CENTER">
+                            <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20; -fx-min-width: 200;" alignment="CENTER" spacing="5">
+                                 <Label text="💰 Total Revenue" style="-fx-font-size: 14px; -fx-text-fill: #666;"/>
+                                 <Label fx:id="totalRevenueLabel" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;"/>
+                            </VBox>
+                            <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20; -fx-min-width: 200;" alignment="CENTER" spacing="5">
+                                 <Label text="📦 Total Orders" style="-fx-font-size: 14px; -fx-text-fill: #666;"/>
+                                 <Label fx:id="totalOrdersLabel" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #1976d2;"/>
+                            </VBox>
+                            <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20; -fx-min-width: 200;" alignment="CENTER" spacing="5">
+                                 <Label text="📊 Stock Value" style="-fx-font-size: 14px; -fx-text-fill: #666;"/>
+                                 <Label fx:id="stockValueLabel" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #ef6c00;"/>
+                            </VBox>
+                        </HBox>
+                        
+                        <!-- Low Stock Warnings -->
+                        <VBox styleClass="liquid-glass-pane" style="-fx-padding: 15;" spacing="10">
+                            <Label text="⚠️ Low Stock Alerts" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+                            <ListView fx:id="lowStockList" prefHeight="120" style="-fx-font-size: 12px;"/>
+                        </VBox>
+                        
+                        <!-- Charts -->
+                        <VBox styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                            <javafx.scene.chart.BarChart fx:id="salesChart" title="Revenue Overview">
+                                <xAxis>
+                                     <javafx.scene.chart.CategoryAxis side="BOTTOM"/>
+                                </xAxis>
+                                <yAxis>
+                                     <javafx.scene.chart.NumberAxis side="LEFT" label="Amount ($)"/>
+                                </yAxis>
+                            </javafx.scene.chart.BarChart>
+                        </VBox>
+                    </VBox>
+                </ScrollPane>
+            </Tab>
+            
+            <Tab text="📦 Manage Products">
                 <VBox spacing="10" style="-fx-padding: 20;">
+                    <!-- Search and Filter -->
+                    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                        <Label text="🔍 Search:" style="-fx-font-weight: bold;"/>
+                        <TextField fx:id="productSearchField" promptText="Search by name..." onKeyReleased="#handleProductSearch" prefWidth="250"/>
+                        <Label text="Filter:" style="-fx-font-weight: bold;"/>
+                        <ComboBox fx:id="filterTypeBox" promptText="All Types" onAction="#handleTypeFilter" prefWidth="120"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="productCountLabel" text="Total: 0 products" style="-fx-font-size: 12px; -fx-text-fill: #666;"/>
+                    </HBox>
+                    
                     <TableView fx:id="productTable" VBox.vgrow="ALWAYS">
                         <columns>
                              <TableColumn fx:id="idCol" text="ID" prefWidth="50"/>
                              <TableColumn fx:id="nameCol" text="Name" prefWidth="150"/>
                              <TableColumn fx:id="typeCol" text="Type" prefWidth="100"/>
-                             <TableColumn fx:id="priceCol" text="Price" prefWidth="100"/>
-                             <TableColumn fx:id="stockCol" text="Stock" prefWidth="100"/>
+                             <TableColumn fx:id="priceCol" text="Price ($)" prefWidth="100"/>
+                             <TableColumn fx:id="stockCol" text="Stock (kg)" prefWidth="100"/>
                              <TableColumn fx:id="thresholdCol" text="Threshold" prefWidth="100"/>
+                             <TableColumn fx:id="statusCol" text="Status" prefWidth="100"/>
                         </columns>
                     </TableView>
                     
-                    <HBox spacing="10" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
-                        <TextField fx:id="pName" promptText="Name"/>
-                        <ComboBox fx:id="pType" promptText="Type"/>
-                        <TextField fx:id="pPrice" promptText="Price" prefWidth="80"/>
-                        <TextField fx:id="pStock" promptText="Stock" prefWidth="80"/>
-                        <TextField fx:id="pThreshold" promptText="Threshold" prefWidth="80"/>
-                        <Button text="Add Product" onAction="#addProduct"/>
-                        <Button text="Update Selected" onAction="#updateProduct"/>
-                        <Button text="Delete Selected" onAction="#deleteProduct"/>
-                    </HBox>
+                    <VBox spacing="10" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                        <Label text="Product Details" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <TextField fx:id="pName" promptText="Product Name" prefWidth="180"/>
+                            <ComboBox fx:id="pType" promptText="Type" prefWidth="120"/>
+                            <TextField fx:id="pPrice" promptText="Price ($)" prefWidth="100"/>
+                            <TextField fx:id="pStock" promptText="Stock (kg)" prefWidth="100"/>
+                            <TextField fx:id="pThreshold" promptText="Threshold" prefWidth="100"/>
+                        </HBox>
+                        <HBox spacing="10">
+                            <Button text="➕ Add New" onAction="#addProduct"/>
+                            <Button text="✏️ Update Selected" onAction="#updateProduct"/>
+                            <Button text="🗑️ Delete Selected" onAction="#deleteProduct"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Clear Form" onAction="#clearForm" styleClass="button-secondary"/>
+                        </HBox>
+                    </VBox>
                 </VBox>
             </Tab>
             
-            <Tab text="Orders &amp; Carriers">
+            <Tab text="📋 Orders">
                  <VBox spacing="10" style="-fx-padding: 20;">
+                     <HBox spacing="10" alignment="CENTER_LEFT" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                        <Label text="Order Management" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label text="Filter:"/>
+                        <ComboBox fx:id="orderStatusFilter" promptText="All Orders" onAction="#handleOrderFilter" prefWidth="150"/>
+                     </HBox>
+                     
                      <TableView fx:id="orderTable" VBox.vgrow="ALWAYS">
                          <columns>
-                             <TableColumn fx:id="orderIdCol" text="Order ID" prefWidth="80"/>
-                             <TableColumn fx:id="orderDateCol" text="Date" prefWidth="150"/>
-                             <TableColumn fx:id="orderTotalCol" text="Total" prefWidth="100"/>
-                             <TableColumn fx:id="carrierCol" text="Carrier ID" prefWidth="80"/>
-                             <TableColumn fx:id="statusCol" text="Status" prefWidth="100"/>
+                             <TableColumn fx:id="orderIdCol" text="ID" prefWidth="60"/>
+                             <TableColumn fx:id="orderDateCol" text="Order Date" prefWidth="160"/>
+                             <TableColumn fx:id="orderProductsCol" text="Products" prefWidth="200"/>
+                             <TableColumn fx:id="orderTotalCol" text="Total ($)" prefWidth="100"/>
+                             <TableColumn fx:id="carrierCol" text="Carrier" prefWidth="100"/>
+                             <TableColumn fx:id="orderStatusCol" text="Status" prefWidth="100"/>
                          </columns>
                      </TableView>
+                     
+                     <HBox styleClass="liquid-glass-pane" style="-fx-padding: 10;" spacing="20">
+                         <VBox alignment="CENTER">
+                             <Label text="Total Orders" style="-fx-font-size: 12px;"/>
+                             <Label fx:id="orderCountLabel" style="-fx-font-weight: bold; -fx-font-size: 18px;"/>
+                         </VBox>
+                         <Separator orientation="VERTICAL"/>
+                         <VBox alignment="CENTER">
+                             <Label text="Pending" style="-fx-font-size: 12px; -fx-text-fill: #ff9800;"/>
+                             <Label fx:id="pendingOrdersLabel" style="-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #ff9800;"/>
+                         </VBox>
+                         <Separator orientation="VERTICAL"/>
+                         <VBox alignment="CENTER">
+                             <Label text="Delivered" style="-fx-font-size: 12px; -fx-text-fill: #4caf50;"/>
+                             <Label fx:id="deliveredOrdersLabel" style="-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #4caf50;"/>
+                         </VBox>
+                     </HBox>
                  </VBox>
             </Tab>
-
-            <Tab text="Reports">
-                <VBox spacing="20" style="-fx-padding: 20;" alignment="CENTER">
-                    <Label text="Financial Reports" styleClass="title-label"/>
-                    <HBox spacing="20" alignment="CENTER">
-                        <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20;">
-                             <Label text="Total Revenue"/>
-                             <Label fx:id="totalRevenueLabel" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
-                        </VBox>
-                         <VBox styleClass="liquid-glass-pane" style="-fx-padding: 20;">
-                             <Label text="Total Orders"/>
-                             <Label fx:id="totalOrdersLabel" style="-fx-font-size: 20; -fx-font-weight: bold;"/>
-                        </VBox>
-                    </HBox>
-                    <javafx.scene.chart.BarChart fx:id="salesChart" title="Revenue by Product Type">
-                        <xAxis>
-                             <javafx.scene.chart.CategoryAxis side="BOTTOM" label="Product Type"/>
-                        </xAxis>
-                        <yAxis>
-                             <javafx.scene.chart.NumberAxis side="LEFT" label="Revenue ($)"/>
-                        </yAxis>
-                    </javafx.scene.chart.BarChart>
-                </VBox>
-            </Tab>
              
-             <Tab text="Messages">
-                 <HBox spacing="10" style="-fx-padding: 20;">
-                     <ListView fx:id="messageList" HBox.hgrow="ALWAYS"/>
-                     <VBox spacing="10">
-                         <TextArea fx:id="replyInput" promptText="Reply..." prefHeight="100"/>
-                         <Button text="Send Reply" onAction="#sendReply"/>
-                     </VBox>
-                 </HBox>
+             <Tab text="💬 Messages">
+                 <VBox spacing="10" style="-fx-padding: 20;">
+                     <HBox styleClass="liquid-glass-pane" style="-fx-padding: 10;" spacing="10">
+                         <Label text="Customer Messages" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                         <Region HBox.hgrow="ALWAYS"/>
+                         <Label fx:id="unreadMessagesLabel" text="Unread: 0" style="-fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+                     </HBox>
+                     
+                     <HBox spacing="15" VBox.vgrow="ALWAYS">
+                         <VBox spacing="10" HBox.hgrow="ALWAYS">
+                             <Label text="Inbox" style="-fx-font-weight: bold;"/>
+                             <ListView fx:id="messageList" VBox.vgrow="ALWAYS"/>
+                         </VBox>
+                         
+                         <VBox spacing="10" styleClass="liquid-glass-pane" style="-fx-padding: 15; -fx-min-width: 300;">
+                             <Label text="Reply" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                             <Separator/>
+                             <Label fx:id="selectedMessageLabel" text="Select a message to reply" wrapText="true" style="-fx-font-size: 12px; -fx-text-fill: #666;"/>
+                             <TextArea fx:id="replyInput" promptText="Type your reply here..." wrapText="true" VBox.vgrow="ALWAYS"/>
+                             <Button text="📤 Send Reply" onAction="#sendReply" maxWidth="Infinity"/>
+                         </VBox>
+                     </HBox>
+                 </VBox>
              </Tab>
              
-             <Tab text="Carriers">
-                 <VBox spacing="10" style="-fx-padding: 20;">
-                      <Label text="Manage Carriers" styleClass="title-label"/>
-                      <ListView fx:id="carrierList" VBox.vgrow="ALWAYS"/>
-                      <HBox spacing="10">
-                          <TextField fx:id="carrierUsername" promptText="Username"/>
-                          <TextField fx:id="carrierPassword" promptText="Password"/>
-                          <Button text="Add Carrier" onAction="#addCarrier"/>
-                          <Button text="Remove Selected" onAction="#removeCarrier"/>
+             <Tab text="🚚 Carriers">
+                 <VBox spacing="15" style="-fx-padding: 20;">
+                      <HBox styleClass="liquid-glass-pane" style="-fx-padding: 10;" alignment="CENTER_LEFT" spacing="10">
+                          <Label text="Carrier Management" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                          <Region HBox.hgrow="ALWAYS"/>
+                          <Label text="Performance ratings help assign orders efficiently" style="-fx-font-size: 11px; -fx-text-fill: #666;"/>
                       </HBox>
+                      
+                      <ListView fx:id="carrierList" VBox.vgrow="ALWAYS" style="-fx-font-size: 13px;"/>
+                      
+                      <VBox spacing="10" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                          <Label text="Add New Carrier" style="-fx-font-weight: bold;"/>
+                          <HBox spacing="10">
+                              <TextField fx:id="carrierUsername" promptText="Username" prefWidth="150"/>
+                              <PasswordField fx:id="carrierPassword" promptText="Password" prefWidth="150"/>
+                              <Button text="➕ Add Carrier" onAction="#addCarrier"/>
+                              <Region HBox.hgrow="ALWAYS"/>
+                              <Button text="🗑️ Remove Selected" onAction="#removeCarrier" styleClass="button-secondary"/>
+                          </HBox>
+                      </VBox>
                  </VBox>
              </Tab>
               
-              <Tab text="Coupons">
-                 <VBox spacing="10" style="-fx-padding: 20;">
-                      <Label text="Manage Coupons" styleClass="title-label"/>
-                      <ListView fx:id="couponList" VBox.vgrow="ALWAYS"/>
-                      <HBox spacing="10">
-                          <TextField fx:id="couponCode" promptText="Code"/>
-                          <TextField fx:id="couponDiscount" promptText="Discount ($)"/>
-                          <TextField fx:id="couponMinSpend" promptText="Min Spend"/>
-                          <Button text="Add Coupon" onAction="#addCoupon"/>
-                          <Button text="Remove Selected" onAction="#removeCoupon"/>
+              <Tab text="🎟️ Coupons">
+                 <VBox spacing="15" style="-fx-padding: 20;">
+                      <HBox styleClass="liquid-glass-pane" style="-fx-padding: 10;" alignment="CENTER_LEFT" spacing="10">
+                          <Label text="Coupon Management" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                          <Region HBox.hgrow="ALWAYS"/>
+                          <Label text="Create promotional codes for customers" style="-fx-font-size: 11px; -fx-text-fill: #666;"/>
                       </HBox>
+                      
+                      <ListView fx:id="couponList" VBox.vgrow="ALWAYS" style="-fx-font-size: 13px;"/>
+                      
+                      <VBox spacing="10" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                          <Label text="Create New Coupon" style="-fx-font-weight: bold;"/>
+                          <HBox spacing="10">
+                              <VBox spacing="5">
+                                  <Label text="Coupon Code" style="-fx-font-size: 11px;"/>
+                                  <TextField fx:id="couponCode" promptText="e.g., SAVE20" prefWidth="120"/>
+                              </VBox>
+                              <VBox spacing="5">
+                                  <Label text="Discount Amount ($)" style="-fx-font-size: 11px;"/>
+                                  <TextField fx:id="couponDiscount" promptText="e.g., 10.00" prefWidth="120"/>
+                              </VBox>
+                              <VBox spacing="5">
+                                  <Label text="Minimum Spend ($)" style="-fx-font-size: 11px;"/>
+                                  <TextField fx:id="couponMinSpend" promptText="e.g., 50.00" prefWidth="120"/>
+                              </VBox>
+                              <Region HBox.hgrow="ALWAYS"/>
+                              <VBox alignment="BOTTOM_LEFT">
+                                  <Button text="➕ Add Coupon" onAction="#addCoupon"/>
+                              </VBox>
+                          </HBox>
+                          <HBox spacing="10">
+                              <Button text="🗑️ Remove Selected" onAction="#removeCoupon" styleClass="button-secondary"/>
+                          </HBox>
+                      </VBox>
                  </VBox>
               </Tab>
         </TabPane>

@@ -1,8 +1,17 @@
 package com.group27.controller;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDateTime;
+
 import com.group27.core.DatabaseAdapter;
-import com.group27.model.Product;
 import com.group27.model.Order;
+import com.group27.model.Product;
+
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -12,15 +21,28 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-
-import java.io.IOException;
-import java.sql.*;
-import java.time.LocalDateTime;
 
 public class OwnerController {
 
+    // Dashboard
+    @FXML private Label lowStockAlert;
+    @FXML private Label totalRevenueLabel;
+    @FXML private Label totalOrdersLabel;
+    @FXML private Label stockValueLabel;
+    @FXML private ListView<String> lowStockList;
+    @FXML private javafx.scene.chart.BarChart<String, Number> salesChart;
+    
+    // Products
     @FXML private TableView<Product> productTable;
     @FXML private TableColumn<Product, Number> idCol;
     @FXML private TableColumn<Product, String> nameCol;
@@ -28,6 +50,10 @@ public class OwnerController {
     @FXML private TableColumn<Product, Number> priceCol;
     @FXML private TableColumn<Product, Number> stockCol;
     @FXML private TableColumn<Product, Number> thresholdCol;
+    @FXML private TableColumn<Product, String> statusCol;
+    @FXML private TextField productSearchField;
+    @FXML private ComboBox<String> filterTypeBox;
+    @FXML private Label productCountLabel;
 
     @FXML private TextField pName;
     @FXML private ComboBox<String> pType;
@@ -35,42 +61,60 @@ public class OwnerController {
     @FXML private TextField pStock;
     @FXML private TextField pThreshold;
 
+    // Orders
     @FXML private TableView<Order> orderTable;
     @FXML private TableColumn<Order, Number> orderIdCol;
     @FXML private TableColumn<Order, String> orderDateCol;
+    @FXML private TableColumn<Order, String> orderProductsCol;
     @FXML private TableColumn<Order, Number> orderTotalCol;
     @FXML private TableColumn<Order, Number> carrierCol;
-    @FXML private TableColumn<Order, String> statusCol;
+    @FXML private TableColumn<Order, String> orderStatusCol;
+    @FXML private ComboBox<String> orderStatusFilter;
+    @FXML private Label orderCountLabel;
+    @FXML private Label pendingOrdersLabel;
+    @FXML private Label deliveredOrdersLabel;
     
-    @FXML private Label totalRevenueLabel;
-    @FXML private Label totalOrdersLabel;
-    @FXML private javafx.scene.chart.BarChart<String, Number> salesChart;
-
+    // Messages
     @FXML private ListView<com.group27.model.Message> messageList;
     @FXML private TextArea replyInput;
+    @FXML private Label unreadMessagesLabel;
+    @FXML private Label selectedMessageLabel;
     
+    // Carriers
     @FXML private ListView<String> carrierList;
     @FXML private TextField carrierUsername;
-    @FXML private TextField carrierPassword;
+    @FXML private javafx.scene.control.PasswordField carrierPassword;
     
+    // Coupons
     @FXML private ListView<String> couponList;
     @FXML private TextField couponCode;
     @FXML private TextField couponDiscount;
     @FXML private TextField couponMinSpend;
 
     private ObservableList<Product> productList = FXCollections.observableArrayList();
+    private ObservableList<Product> filteredProductList = FXCollections.observableArrayList();
     private ObservableList<Order> orderList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
         pType.getItems().addAll("Vegetable", "Fruit");
         
+        if (filterTypeBox != null) {
+            filterTypeBox.getItems().addAll("All Types", "Vegetable", "Fruit");
+            filterTypeBox.setValue("All Types");
+        }
+        
+        if (orderStatusFilter != null) {
+            orderStatusFilter.getItems().addAll("All Orders", "Pending", "Delivered");
+            orderStatusFilter.setValue("All Orders");
+        }
+        
         setupProductTable();
         setupOrderTable();
         
         loadProducts();
         loadOrders();
-        updateReports();
+        updateDashboard();
         loadMessages();
         loadCarriers();
         loadCoupons();
@@ -84,84 +128,140 @@ public class OwnerController {
                 pThreshold.setText(String.valueOf(newVal.getThreshold()));
             }
         });
+        
+        messageList.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && selectedMessageLabel != null) {
+                selectedMessageLabel.setText("From User ID " + newVal.getSenderId() + ": " + newVal.getContent());
+            }
+        });
     }
 
-    private void updateReports() {
+    private void updateDashboard() {
         double revenue = orderList.stream().mapToDouble(Order::getTotalCost).sum();
         int count = orderList.size();
+        double stockValue = productList.stream().mapToDouble(p -> p.getPrice() * p.getStock()).sum();
         
         if (totalRevenueLabel != null)
             totalRevenueLabel.setText("$" + String.format("%.2f", revenue));
         if (totalOrdersLabel != null)
             totalOrdersLabel.setText(String.valueOf(count));
+        if (stockValueLabel != null)
+            stockValueLabel.setText("$" + String.format("%.2f", stockValue));
             
+        // Low Stock Alerts
+        updateLowStockAlerts();
+        
+        // Update order statistics
+        updateOrderStatistics();
+        
         // Populate Chart
         if (salesChart != null) {
             salesChart.getData().clear();
             javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
-            series.setName("Revenue by Product Type");
+            series.setName("Financial Overview");
             
-            // This requires complex join query. For simplicity, let's approximate or do a quick query.
-            // Ideally: SELECT p.type, SUM(p.price * item_amount) FROM ... 
-            // Given the 'products' string in OrderInfo is "Name:Amount;", it's hard to join directly in SQL without normalization.
-            // We will parse the orders in memory since we already loaded them.
-            
-            // Mock data for demonstration if parsing is too complex for time, 
-            // OR parse orderList if possible.
-            // Let's do a simple count of orders for now or random data? 
-            // Prompt says "view reports as charts based on product/time/money".
-            
-            // Let's try to query product info to get types.
-            // Map<String, Double> revenueByType
-            
-            java.util.Map<String, Double> revenueByType = new java.util.HashMap<>();
-            revenueByType.put("Vegetable", 0.0);
-            revenueByType.put("Fruit", 0.0);
-            
-            // Parsing "Potato:2.0;Apple:1.0;" is tricky without price history.
-            // We'll use current prices as approximation or just split total cost 50/50 for demo.
-            // BETTER: Count types of products in inventory? No, that's not sales.
-            
-            // Let's execute a proper query if we had normalized tables. 
-            // Since we stored products as text, accurate reporting is hard.
-            // I'll implement a query that counts sold items if possible, or just visualize total revenue.
-            
-            // Fallback: Show Revenue vs Stock Value
-            double stockValue = productList.stream().mapToDouble(p -> p.getPrice() * p.getStock()).sum();
             series.getData().add(new javafx.scene.chart.XYChart.Data<>("Total Revenue", revenue));
-            series.getData().add(new javafx.scene.chart.XYChart.Data<>("Current Stock Value", stockValue));
+            series.getData().add(new javafx.scene.chart.XYChart.Data<>("Stock Value", stockValue));
+            
+            // Calculate pending orders value
+            double pendingValue = orderList.stream()
+                .filter(o -> !o.isDelivered())
+                .mapToDouble(Order::getTotalCost)
+                .sum();
+            series.getData().add(new javafx.scene.chart.XYChart.Data<>("Pending Orders", pendingValue));
             
             salesChart.getData().add(series);
         }
+    }
+    
+    private void updateLowStockAlerts() {
+        if (lowStockList != null) {
+            lowStockList.getItems().clear();
+            int lowStockCount = 0;
+            
+            for (Product p : productList) {
+                if (p.getStock() <= p.getThreshold()) {
+                    lowStockList.getItems().add(
+                        String.format("⚠️ %s - Stock: %.1fkg (Threshold: %.1fkg)", 
+                            p.getName(), p.getStock(), p.getThreshold())
+                    );
+                    lowStockCount++;
+                }
+            }
+            
+            if (lowStockCount == 0) {
+                lowStockList.getItems().add("✅ All products are well stocked!");
+            }
+            
+            if (lowStockAlert != null) {
+                if (lowStockCount > 0) {
+                    lowStockAlert.setText("⚠️ " + lowStockCount + " low stock items");
+                } else {
+                    lowStockAlert.setText("");
+                }
+            }
+        }
+    }
+    
+    private void updateOrderStatistics() {
+        long pending = orderList.stream().filter(o -> !o.isDelivered()).count();
+        long delivered = orderList.stream().filter(Order::isDelivered).count();
+        
+        if (orderCountLabel != null)
+            orderCountLabel.setText(String.valueOf(orderList.size()));
+        if (pendingOrdersLabel != null)
+            pendingOrdersLabel.setText(String.valueOf(pending));
+        if (deliveredOrdersLabel != null)
+            deliveredOrdersLabel.setText(String.valueOf(delivered));
     }
 
     private void loadMessages() {
         if (messageList == null) return;
         messageList.getItems().clear();
+        int unreadCount = 0;
+        
         String query = "SELECT * FROM Messages ORDER BY timestamp DESC";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 LocalDateTime ts = rs.getTimestamp("timestamp").toLocalDateTime();
+                String reply = rs.getString("reply");
+                
+                if (reply == null || reply.isEmpty()) {
+                    unreadCount++;
+                }
+                
                 messageList.getItems().add(new com.group27.model.Message(
                     rs.getInt("id"),
                     rs.getInt("sender_id"),
                     rs.getInt("receiver_id"),
                     rs.getString("content"),
                     ts,
-                    rs.getString("reply")
+                    reply
                 ));
             }
+            
+            if (unreadMessagesLabel != null) {
+                unreadMessagesLabel.setText("Unread: " + unreadCount);
+            }
+            
             messageList.setCellFactory(param -> new ListCell<>() {
                 @Override
                 protected void updateItem(com.group27.model.Message item, boolean empty) {
                     super.updateItem(item, empty);
                     if (empty || item == null) {
                         setText(null);
+                        setStyle("");
                     } else {
-                        String txt = "From ID " + item.getSenderId() + ": " + item.getContent();
-                        if (item.getReply() != null) txt += "\n[Replied]: " + item.getReply();
+                        String txt = "From User ID " + item.getSenderId() + ": " + item.getContent();
+                        if (item.getReply() != null && !item.getReply().isEmpty()) {
+                            txt += "\n✅ Replied: " + item.getReply();
+                            setStyle("-fx-text-fill: #666;");
+                        } else {
+                            txt = "📩 " + txt;
+                            setStyle("-fx-font-weight: bold;");
+                        }
                         setText(txt);
                     }
                 }
@@ -313,21 +413,62 @@ public class OwnerController {
         priceCol.setCellValueFactory(d -> new SimpleDoubleProperty(d.getValue().getPrice()));
         stockCol.setCellValueFactory(d -> new SimpleDoubleProperty(d.getValue().getStock()));
         thresholdCol.setCellValueFactory(d -> new SimpleDoubleProperty(d.getValue().getThreshold()));
-        productTable.setItems(productList);
+        
+        if (statusCol != null) {
+            statusCol.setCellValueFactory(d -> {
+                Product p = d.getValue();
+                String status = p.getStock() <= p.getThreshold() ? "⚠️ Low Stock" : "✅ OK";
+                return new SimpleStringProperty(status);
+            });
+        }
+        
+        productTable.setItems(filteredProductList);
+        updateProductCount();
     }
     
     private void setupOrderTable() {
         orderIdCol.setCellValueFactory(d -> new SimpleIntegerProperty(d.getValue().getId()));
-        orderDateCol.setCellValueFactory(d -> new SimpleObjectProperty<>(d.getValue().getOrderTime().toString()));
+        orderDateCol.setCellValueFactory(d -> {
+            LocalDateTime dt = d.getValue().getOrderTime();
+            return new SimpleObjectProperty<>(dt != null ? dt.toString().replace("T", " ") : "N/A");
+        });
+        
+        if (orderProductsCol != null) {
+            orderProductsCol.setCellValueFactory(d -> {
+                String products = d.getValue().getProductsJson();
+                // Shorten for display: "Potato:2.0;Apple:1.0;" -> "Potato, Apple, ..."
+                if (products != null && !products.isEmpty()) {
+                    String[] items = products.split(";");
+                    String display = java.util.Arrays.stream(items)
+                        .limit(3)
+                        .map(item -> item.split(":")[0])
+                        .collect(java.util.stream.Collectors.joining(", "));
+                    if (items.length > 3) display += "...";
+                    return new SimpleStringProperty(display);
+                }
+                return new SimpleStringProperty("N/A");
+            });
+        }
+        
         orderTotalCol.setCellValueFactory(d -> new SimpleDoubleProperty(d.getValue().getTotalCost()));
-        carrierCol.setCellValueFactory(d -> new SimpleIntegerProperty(d.getValue().getCarrierId()));
-        statusCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().isDelivered() ? "Delivered" : "Pending"));
+        carrierCol.setCellValueFactory(d -> {
+            int cid = d.getValue().getCarrierId();
+            return new SimpleIntegerProperty(cid > 0 ? cid : 0);
+        });
+        
+        if (orderStatusCol != null) {
+            orderStatusCol.setCellValueFactory(d -> {
+                String status = d.getValue().isDelivered() ? "✅ Delivered" : "⏳ Pending";
+                return new SimpleStringProperty(status);
+            });
+        }
+        
         orderTable.setItems(orderList);
     }
 
     private void loadProducts() {
         productList.clear();
-        String query = "SELECT * FROM ProductInfo";
+        String query = "SELECT * FROM ProductInfo ORDER BY name";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
@@ -342,9 +483,64 @@ public class OwnerController {
                         null
                 ));
             }
+            filterProducts();
+            updateProductCount();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    
+    private void filterProducts() {
+        filteredProductList.clear();
+        
+        String searchText = productSearchField != null ? productSearchField.getText().toLowerCase() : "";
+        String typeFilter = filterTypeBox != null ? filterTypeBox.getValue() : "All Types";
+        
+        for (Product p : productList) {
+            boolean matchesSearch = searchText.isEmpty() || 
+                p.getName().toLowerCase().contains(searchText);
+            boolean matchesType = typeFilter == null || typeFilter.equals("All Types") || 
+                p.getType().equals(typeFilter);
+                
+            if (matchesSearch && matchesType) {
+                filteredProductList.add(p);
+            }
+        }
+        
+        updateProductCount();
+    }
+    
+    private void updateProductCount() {
+        if (productCountLabel != null) {
+            productCountLabel.setText("Total: " + filteredProductList.size() + " products");
+        }
+    }
+    
+    @FXML
+    private void handleProductSearch() {
+        filterProducts();
+    }
+    
+    @FXML
+    private void handleTypeFilter() {
+        filterProducts();
+    }
+    
+    @FXML
+    private void handleOrderFilter() {
+        // Implementation for order filtering can be added
+        updateOrderStatistics();
+    }
+    
+    @FXML
+    private void refreshAll() {
+        loadProducts();
+        loadOrders();
+        updateDashboard();
+        loadMessages();
+        loadCarriers();
+        loadCoupons();
+        showAlert("Refreshed", "All data has been refreshed successfully!");
     }
     
     private void loadOrders() {
@@ -397,11 +593,14 @@ public class OwnerController {
                 stmt.setDouble(5, threshold);
                 stmt.executeUpdate();
                 loadProducts();
+                updateDashboard();
                 clearForm();
+                showAlert("Success", "Product added successfully!");
             }
         } catch (NumberFormatException e) {
             showAlert("Error", "Invalid number format");
         } catch (SQLException e) {
+            showAlert("Error", "Failed to add product: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -432,10 +631,12 @@ public class OwnerController {
                 stmt.setInt(6, selected.getId());
                 stmt.executeUpdate();
                 loadProducts();
+                updateDashboard();
                 clearForm();
+                showAlert("Success", "Product updated successfully!");
             }
         } catch (Exception e) {
-            showAlert("Error", "Update failed");
+            showAlert("Error", "Update failed: " + e.getMessage());
         }
     }
     
@@ -451,13 +652,16 @@ public class OwnerController {
                  stmt.setInt(1, selected.getId());
                  stmt.executeUpdate();
                  loadProducts();
+                 updateDashboard();
                  clearForm();
+                 showAlert("Success", "Product deleted successfully!");
              }
         } catch (Exception e) {
-             showAlert("Error", "Delete failed");
+             showAlert("Error", "Delete failed: " + e.getMessage());
         }
     }
     
+    @FXML
     private void clearForm() {
         pName.clear();
         pPrice.clear();
