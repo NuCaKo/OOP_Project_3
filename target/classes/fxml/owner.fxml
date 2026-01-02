@@ -39,7 +39,7 @@
                         <!-- Low Stock Warnings -->
                         <VBox styleClass="liquid-glass-pane" style="-fx-padding: 15;" spacing="10">
                             <Label text="⚠️ Low Stock Alerts" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
-                            <ListView fx:id="lowStockList" prefHeight="120" style="-fx-font-size: 12px;"/>
+                            <ListView fx:id="lowStockList" prefHeight="150" minHeight="150" style="-fx-font-size: 12px; -fx-background-color: transparent;"/>
                         </VBox>
                         
                         <!-- Charts -->
@@ -223,6 +223,44 @@
                           </HBox>
                       </VBox>
                  </VBox>
+              </Tab>
+              
+              <Tab text="📈 Reports">
+                 <ScrollPane fitToWidth="true" fitToHeight="true">
+                     <VBox spacing="20" style="-fx-padding: 20;">
+                         <!-- Product-based Sales Chart -->
+                         <VBox styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                             <Label text="📦 Product Sales Report" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                             <javafx.scene.chart.BarChart fx:id="productSalesChart" title="Sales by Product">
+                                 <xAxis>
+                                     <javafx.scene.chart.CategoryAxis side="BOTTOM" label="Products"/>
+                                 </xAxis>
+                                 <yAxis>
+                                     <javafx.scene.chart.NumberAxis side="LEFT" label="Quantity Sold (kg)"/>
+                                 </yAxis>
+                             </javafx.scene.chart.BarChart>
+                         </VBox>
+                         
+                         <!-- Time-based Sales Chart -->
+                         <VBox styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                             <Label text="📅 Time-based Sales Report" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                             <javafx.scene.chart.LineChart fx:id="timeSalesChart" title="Sales Over Time">
+                                 <xAxis>
+                                     <javafx.scene.chart.CategoryAxis side="BOTTOM" label="Date"/>
+                                 </xAxis>
+                                 <yAxis>
+                                     <javafx.scene.chart.NumberAxis side="LEFT" label="Revenue ($)"/>
+                                 </yAxis>
+                             </javafx.scene.chart.LineChart>
+                         </VBox>
+                         
+                         <!-- Money-based Revenue Chart -->
+                         <VBox styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+                             <Label text="💰 Revenue Analysis" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                             <javafx.scene.chart.PieChart fx:id="revenueChart" title="Revenue Breakdown"/>
+                         </VBox>
+                     </VBox>
+                 </ScrollPane>
               </Tab>
         </TabPane>
     </center>

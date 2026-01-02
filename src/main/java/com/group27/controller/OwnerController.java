@@ -42,6 +42,11 @@ public class OwnerController {
     @FXML private ListView<String> lowStockList;
     @FXML private javafx.scene.chart.BarChart<String, Number> salesChart;
     
+    // Reports Charts
+    @FXML private javafx.scene.chart.BarChart<String, Number> productSalesChart;
+    @FXML private javafx.scene.chart.LineChart<String, Number> timeSalesChart;
+    @FXML private javafx.scene.chart.PieChart revenueChart;
+    
     // Products
     @FXML private TableView<Product> productTable;
     @FXML private TableColumn<Product, Number> idCol;
@@ -118,6 +123,7 @@ public class OwnerController {
         loadMessages();
         loadCarriers();
         loadCoupons();
+        updateReports();
         
         productTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
@@ -333,18 +339,68 @@ public class OwnerController {
     @FXML
     private void removeCarrier() {
         String selected = carrierList.getSelectionModel().getSelectedItem();
-        if (selected == null) return;
+        if (selected == null) {
+            showAlert("No Selection", "Please select a carrier to remove.");
+            return;
+        }
         
-        String query = "DELETE FROM UserInfo WHERE username = ? AND role = 'carrier'";
+        // Parse "username (Rating..."
+        String username = selected.split(" \\(")[0];
+        
+        // Get carrier ID
+        String getCarrierIdQuery = "SELECT id FROM UserInfo WHERE username = ? AND role = 'carrier'";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            // Parse "username (Rating..."
-            String username = selected.split(" \\(")[0];
+        int carrierId = 0;
+        
+        try (PreparedStatement stmt = conn.prepareStatement(getCarrierIdQuery)) {
             stmt.setString(1, username);
-            stmt.executeUpdate();
-            loadCarriers();
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                carrierId = rs.getInt("id");
+            } else {
+                showAlert("Error", "Carrier not found.");
+                return;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
+            showAlert("Error", "Failed to check carrier status.");
+            return;
+        }
+        
+        // Check if carrier has pending (undelivered) orders
+        String checkPendingOrdersQuery = "SELECT COUNT(*) as pending_count FROM OrderInfo WHERE carrier_id = ? AND isdelivered = FALSE";
+        try (PreparedStatement stmt = conn.prepareStatement(checkPendingOrdersQuery)) {
+            stmt.setInt(1, carrierId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int pendingCount = rs.getInt("pending_count");
+                if (pendingCount > 0) {
+                    showAlert("Cannot Remove Carrier", 
+                        String.format("Cannot remove carrier '%s' because they have %d pending order(s).\n" +
+                                    "Please wait until all orders are delivered.", username, pendingCount));
+                    return;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to check pending orders.");
+            return;
+        }
+        
+        // Safe to remove - no pending orders
+        String deleteQuery = "DELETE FROM UserInfo WHERE id = ? AND role = 'carrier'";
+        try (PreparedStatement stmt = conn.prepareStatement(deleteQuery)) {
+            stmt.setInt(1, carrierId);
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                showAlert("Success", "Carrier '" + username + "' has been removed successfully.");
+                loadCarriers();
+            } else {
+                showAlert("Error", "Failed to remove carrier.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to remove carrier: " + e.getMessage());
         }
     }
     
@@ -532,11 +588,95 @@ public class OwnerController {
         updateOrderStatistics();
     }
     
+    private void updateReports() {
+        // Product-based Sales Chart
+        if (productSalesChart != null) {
+            productSalesChart.getData().clear();
+            java.util.Map<String, Double> productSales = new java.util.HashMap<>();
+            
+            // Parse products from orders and aggregate by product name
+            for (Order order : orderList) {
+                String productsJson = order.getProductsJson();
+                if (productsJson != null && !productsJson.isEmpty()) {
+                    String[] items = productsJson.split(";");
+                    for (String item : items) {
+                        item = item.trim();
+                        if (item.isEmpty()) continue;
+                        try {
+                            String[] parts = item.split(":");
+                            if (parts.length == 2) {
+                                String productName = parts[0].trim();
+                                double amount = Double.parseDouble(parts[1].trim());
+                                productSales.put(productName, productSales.getOrDefault(productName, 0.0) + amount);
+                            }
+                        } catch (Exception e) {
+                            // Skip invalid entries
+                        }
+                    }
+                }
+            }
+            
+            javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
+            series.setName("Quantity Sold (kg)");
+            for (java.util.Map.Entry<String, Double> entry : productSales.entrySet()) {
+                series.getData().add(new javafx.scene.chart.XYChart.Data<>(entry.getKey(), entry.getValue()));
+            }
+            productSalesChart.getData().add(series);
+        }
+        
+        // Time-based Sales Chart
+        if (timeSalesChart != null) {
+            timeSalesChart.getData().clear();
+            java.util.Map<String, Double> dailyRevenue = new java.util.HashMap<>();
+            
+            // Group orders by date
+            for (Order order : orderList) {
+                if (order.getOrderTime() != null) {
+                    String dateKey = order.getOrderTime().format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"));
+                    dailyRevenue.put(dateKey, dailyRevenue.getOrDefault(dateKey, 0.0) + order.getTotalCost());
+                }
+            }
+            
+            javafx.scene.chart.XYChart.Series<String, Number> series = new javafx.scene.chart.XYChart.Series<>();
+            series.setName("Revenue ($)");
+            // Sort by date for better visualization
+            java.util.List<String> sortedDates = new java.util.ArrayList<>(dailyRevenue.keySet());
+            java.util.Collections.sort(sortedDates);
+            for (String date : sortedDates) {
+                series.getData().add(new javafx.scene.chart.XYChart.Data<>(date, dailyRevenue.get(date)));
+            }
+            timeSalesChart.getData().add(series);
+        }
+        
+        // Money-based Revenue Chart (Pie Chart)
+        if (revenueChart != null) {
+            revenueChart.getData().clear();
+            
+            double totalRevenue = orderList.stream().mapToDouble(Order::getTotalCost).sum();
+            
+            if (totalRevenue > 0) {
+                double deliveredRevenue = orderList.stream()
+                    .filter(Order::isDelivered)
+                    .mapToDouble(Order::getTotalCost)
+                    .sum();
+                double pendingRevenue = totalRevenue - deliveredRevenue;
+                
+                javafx.scene.chart.PieChart.Data deliveredData = new javafx.scene.chart.PieChart.Data(
+                    String.format("Delivered (%.1f%%)", (deliveredRevenue / totalRevenue * 100)), deliveredRevenue);
+                javafx.scene.chart.PieChart.Data pendingData = new javafx.scene.chart.PieChart.Data(
+                    String.format("Pending (%.1f%%)", (pendingRevenue / totalRevenue * 100)), pendingRevenue);
+                
+                revenueChart.getData().addAll(deliveredData, pendingData);
+            }
+        }
+    }
+    
     @FXML
     private void refreshAll() {
         loadProducts();
         loadOrders();
         updateDashboard();
+        updateReports();
         loadMessages();
         loadCarriers();
         loadCoupons();
