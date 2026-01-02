@@ -49,9 +49,10 @@ public class CartController {
         for (CartItem item : cartItems) {
             if (item.getProduct().getId() == p.getId()) {
                 item.addAmount(amount);
-                // Trigger update hack if needed, or rely on TableView refresh
+                // Trigger listener by removing and re-adding to ensure change is detected
                 int idx = cartItems.indexOf(item);
-                cartItems.set(idx, item);
+                cartItems.remove(idx);
+                cartItems.add(idx, item);
                 return;
             }
         }

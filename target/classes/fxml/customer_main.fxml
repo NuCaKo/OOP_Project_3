@@ -49,16 +49,16 @@
 
                 <Separator/>
 
-                <Label text="Cart Preview" style="-fx-font-weight: bold;"/>
-                <ListView fx:id="miniCartList" prefHeight="150"/>
+                <Label text="Cart Preview" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                <ListView fx:id="miniCartList" prefHeight="150" minHeight="100" style="-fx-font-size: 11px;" visible="true" managed="true"/>
                 
                 <Separator/>
                 
                 <Label text="Messages" styleClass="title-label"/>
-                <TextArea fx:id="messageInput" promptText="Write a message to the owner..." prefHeight="80"/>
+                <TextArea fx:id="messageInput" promptText="Write a message to the owner..." prefHeight="80" wrapText="true"/>
                 <Button text="Send Message" onAction="#sendMessage"/>
-                <Label text="Inbox:" style="-fx-font-weight: bold;"/>
-                <ListView fx:id="messageList" VBox.vgrow="ALWAYS"/>
+                <Label text="Inbox:" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                <ListView fx:id="messageList" VBox.vgrow="ALWAYS" style="-fx-font-size: 11px; -fx-font-family: 'Monaco', 'Menlo', monospace;"/>
             </VBox>
         </SplitPane>
     </center>

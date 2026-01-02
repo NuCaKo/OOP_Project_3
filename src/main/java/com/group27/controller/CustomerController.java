@@ -50,24 +50,92 @@ public class CustomerController {
         
         loadProducts();
         loadMessages();
+        
+        // Setup message list cell factory for better display
+        if (messageList != null) {
+            messageList.setCellFactory(param -> new ListCell<String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        setText(item);
+                        setWrapText(true);
+                        setStyle("-fx-padding: 8px; -fx-background-color: #f5f5f5; -fx-background-radius: 5px;");
+                    }
+                }
+            });
+        }
 
         // Initialize Mini-Cart
+        System.out.println("DEBUG: Initializing mini cart. miniCartList is null: " + (miniCartList == null));
         if (miniCartList != null) {
+            // Setup cell factory for better display
+            miniCartList.setCellFactory(param -> new ListCell<String>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        setText(item);
+                        setWrapText(false);
+                        setStyle("-fx-padding: 3px;");
+                    }
+                }
+            });
+            
             updateMiniCart();
-            CartController.getCartItems().addListener((javafx.collections.ListChangeListener<CartController.CartItem>) c -> updateMiniCart());
+            // Listen to cart changes
+            CartController.getCartItems().addListener((javafx.collections.ListChangeListener.Change<? extends CartController.CartItem> c) -> {
+                System.out.println("DEBUG: Cart changed detected!");
+                while (c.next()) {
+                    if (c.wasAdded() || c.wasRemoved() || c.wasUpdated()) {
+                        System.out.println("DEBUG: Cart change: added=" + c.wasAdded() + ", removed=" + c.wasRemoved() + ", updated=" + c.wasUpdated());
+                        updateMiniCart();
+                        break;
+                    }
+                }
+            });
+        } else {
+            System.out.println("DEBUG: miniCartList is null, cannot initialize!");
         }
     }
 
     private void updateMiniCart() {
-        if (miniCartList == null) return;
+        if (miniCartList == null) {
+            System.out.println("DEBUG: miniCartList is null!");
+            return;
+        }
+        
+        System.out.println("DEBUG: Updating mini cart. Cart items: " + CartController.getCartItems().size());
+        
         miniCartList.getItems().clear();
+        
+        if (CartController.getCartItems().isEmpty()) {
+            miniCartList.getItems().add("Cart is empty");
+            System.out.println("DEBUG: Cart is empty");
+            return;
+        }
+        
         double total = 0;
         for (CartController.CartItem item : CartController.getCartItems()) {
-            miniCartList.getItems().add(String.format("%s (%.2f kg) - $%.2f", item.getProduct().getName(), item.getAmount(), item.getTotal()));
+            String itemText = String.format("• %s - %.2f kg × $%.2f = $%.2f", 
+                item.getProduct().getName(), 
+                item.getAmount(), 
+                item.getPriceAtMoment(),
+                item.getTotal());
+            miniCartList.getItems().add(itemText);
             total += item.getTotal();
+            System.out.println("DEBUG: Added to preview: " + itemText);
         }
-        miniCartList.getItems().add("----------------");
+        miniCartList.getItems().add("━━━━━━━━━━━━━━━━");
         miniCartList.getItems().add(String.format("Total: $%.2f", total));
+        
+        System.out.println("DEBUG: Mini cart updated. Total items in list: " + miniCartList.getItems().size());
     }
 
     private void loadProducts() {
@@ -244,6 +312,9 @@ public class CustomerController {
             }
             
             CartController.addItem(p, amount, priceAtMoment);
+            System.out.println("DEBUG: Added item to cart. Cart size: " + CartController.getCartItems().size());
+            // Update cart preview immediately
+            updateMiniCart();
             showAlert("Success", "Added " + amount + "kg of " + p.getName() + " to cart.");
             
         } catch (NumberFormatException e) {
@@ -292,8 +363,13 @@ public class CustomerController {
             stmt.setString(3, content);
             stmt.executeUpdate();
             
+            String sentMessage = messageInput.getText();
             messageInput.clear();
             loadMessages();
+            // Scroll to top to show new message
+            if (messageList.getItems().size() > 0) {
+                messageList.scrollTo(0);
+            }
             showAlert("Success", "Message sent to owner.");
         } catch (SQLException e) {
             e.printStackTrace();
@@ -312,17 +388,36 @@ public class CustomerController {
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, user.getId());
             ResultSet rs = stmt.executeQuery();
+            
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm");
+            boolean hasMessages = false;
+            
             while (rs.next()) {
-                String msg = "Me: " + rs.getString("content");
+                hasMessages = true;
+                java.sql.Timestamp timestamp = rs.getTimestamp("timestamp");
+                String formattedDate = timestamp != null ? dateFormat.format(timestamp) : "Unknown date";
+                
+                StringBuilder msgBuilder = new StringBuilder();
+                msgBuilder.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+                msgBuilder.append("📤 You: ").append(rs.getString("content")).append("\n");
+                msgBuilder.append("   ").append(formattedDate).append("\n");
+                
                 String reply = rs.getString("reply");
-                if (reply != null && !reply.isEmpty()) {
-                    msg += "\nOwner: " + reply;
+                if (reply != null && !reply.trim().isEmpty()) {
+                    msgBuilder.append("\n📥 Owner: ").append(reply).append("\n");
+                } else {
+                    msgBuilder.append("\n⏳ Waiting for reply...\n");
                 }
-                msg += "\n(" + rs.getTimestamp("timestamp") + ")";
-                messageList.getItems().add(msg);
+                
+                messageList.getItems().add(msgBuilder.toString());
+            }
+            
+            if (!hasMessages) {
+                messageList.getItems().add("No messages yet. Start a conversation!");
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            messageList.getItems().add("Error loading messages");
         }
     }
 
