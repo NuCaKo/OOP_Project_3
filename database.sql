@@ -61,6 +61,17 @@ CREATE TABLE Messages (
     FOREIGN KEY (sender_id) REFERENCES UserInfo(id)
 );
 
+-- 6. UserCoupons Table (Customer's owned coupons)
+CREATE TABLE IF NOT EXISTS UserCoupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    coupon_id INT,
+    acquired_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    used BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES UserInfo(id),
+    FOREIGN KEY (coupon_id) REFERENCES Coupons(id)
+);
+
 -- ==========================================
 -- SEED DATA
 -- ==========================================

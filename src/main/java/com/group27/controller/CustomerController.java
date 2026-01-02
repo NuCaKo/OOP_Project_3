@@ -1,27 +1,40 @@
 package com.group27.controller;
 
-import com.group27.core.DatabaseAdapter;
-import com.group27.model.Product;
-import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+
+import com.group27.core.DatabaseAdapter;
+import com.group27.model.Product;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 public class CustomerController {
 
@@ -35,6 +48,7 @@ public class CustomerController {
     @FXML private ListView<String> messageList;
     @FXML private TextField editAddressField;
     @FXML private PasswordField editPasswordField;
+    @FXML private Label loyaltyPointsLabel;
 
     private List<Product> allProducts = new ArrayList<>();
     
@@ -44,12 +58,21 @@ public class CustomerController {
         if (user != null) {
             welcomeLabel.setText("Welcome, " + user.getUsername());
             if (editAddressField != null) editAddressField.setText(user.getAddress());
+            updateLoyaltyPoints();
         } else {
             welcomeLabel.setText("Welcome, Valued Customer");
         }
         
         loadProducts();
-        loadMessages();
+        
+        // Load messages after a short delay to ensure UI is ready
+        javafx.application.Platform.runLater(() -> {
+            loadMessages();
+            System.out.println("DEBUG: Messages loaded. MessageList null? " + (messageList == null));
+            if (messageList != null) {
+                System.out.println("DEBUG: MessageList items count: " + messageList.getItems().size());
+            }
+        });
         
         // Setup message list cell factory for better display
         if (messageList != null) {
@@ -306,13 +329,39 @@ public class CustomerController {
                 showAlert("Invalid Amount", "Please enter a positive amount.");
                 return;
             }
+            
+            // Check current stock
             if (amount > p.getStock()) {
                 showAlert("Insufficient Stock", "Only " + p.getStock() + " kg available.");
                 return;
             }
             
+            // Check if product is already in cart and calculate total amount
+            double alreadyInCart = CartController.getCartItems().stream()
+                .filter(item -> item.getProduct().getId() == p.getId())
+                .mapToDouble(CartController.CartItem::getAmount)
+                .sum();
+            
+            double totalAmount = alreadyInCart + amount;
+            
+            if (totalAmount > p.getStock()) {
+                showAlert("Insufficient Stock", 
+                    String.format("You already have %.2f kg of %s in your cart.\n" +
+                                "Only %.2f kg available in stock.\n" +
+                                "You can add maximum %.2f kg more.", 
+                                alreadyInCart, p.getName(), p.getStock(), p.getStock() - alreadyInCart));
+                return;
+            }
+            
             CartController.addItem(p, amount, priceAtMoment);
             System.out.println("DEBUG: Added item to cart. Cart size: " + CartController.getCartItems().size());
+            
+            // Update product stock in memory (UI only, not database)
+            p.setStock(p.getStock() - amount);
+            
+            // Refresh products display to show updated stock
+            renderProducts(allProducts);
+            
             // Update cart preview immediately
             updateMiniCart();
             showAlert("Success", "Added " + amount + "kg of " + p.getName() + " to cart.");
@@ -324,11 +373,30 @@ public class CustomerController {
 
     @FXML
     private void handleSearch() {
-        String term = searchField.getText().toLowerCase();
+        String term = searchField.getText().toLowerCase().trim();
+        
+        if (term.isEmpty()) {
+            // If search is empty, show all products
+            renderProducts(allProducts);
+            // Expand both panes
+            if (vegPaneTitled != null) vegPaneTitled.setExpanded(true);
+            if (fruitPaneTitled != null) fruitPaneTitled.setExpanded(false);
+            return;
+        }
+        
         List<Product> filtered = allProducts.stream()
                 .filter(p -> p.getName().toLowerCase().contains(term))
                 .collect(Collectors.toList());
         renderProducts(filtered);
+        
+        // Auto-expand the appropriate category based on results
+        if (!filtered.isEmpty()) {
+            boolean hasVeg = filtered.stream().anyMatch(p -> "Vegetable".equalsIgnoreCase(p.getType()));
+            boolean hasFruit = filtered.stream().anyMatch(p -> "Fruit".equalsIgnoreCase(p.getType()));
+            
+            if (vegPaneTitled != null) vegPaneTitled.setExpanded(hasVeg);
+            if (fruitPaneTitled != null) fruitPaneTitled.setExpanded(hasFruit);
+        }
     }
     
     @FXML
@@ -347,77 +415,130 @@ public class CustomerController {
     
     @FXML
     private void sendMessage() {
-        String content = messageInput.getText();
-        if (content.isEmpty()) return;
+        String content = messageInput.getText().trim();
+        if (content.isEmpty()) {
+            showAlert("Empty Message", "Please write a message before sending.");
+            return;
+        }
         
         com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            showAlert("Error", "Please login to send messages.");
+            return;
+        }
         
-        int ownerId = 3; 
-        
-        String query = "INSERT INTO Messages (sender_id, receiver_id, content) VALUES (?, ?, ?)";
+        // Find owner ID from database
+        String findOwnerQuery = "SELECT id FROM UserInfo WHERE role = 'owner' LIMIT 1";
+        String insertQuery = "INSERT INTO Messages (sender_id, receiver_id, content) VALUES (?, ?, ?)";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
-        try (PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, user.getId());
-            stmt.setInt(2, ownerId);
-            stmt.setString(3, content);
-            stmt.executeUpdate();
-            
-            String sentMessage = messageInput.getText();
-            messageInput.clear();
-            loadMessages();
-            // Scroll to top to show new message
-            if (messageList.getItems().size() > 0) {
-                messageList.scrollTo(0);
+        
+        try {
+            int ownerId = 0;
+            try (PreparedStatement findStmt = conn.prepareStatement(findOwnerQuery)) {
+                ResultSet rs = findStmt.executeQuery();
+                if (rs.next()) {
+                    ownerId = rs.getInt("id");
+                }
             }
-            showAlert("Success", "Message sent to owner.");
+            
+            if (ownerId == 0) {
+                showAlert("Error", "Could not find owner to send message to.");
+                return;
+            }
+            
+            try (PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
+                stmt.setInt(1, user.getId());
+                stmt.setInt(2, ownerId);
+                stmt.setString(3, content);
+                stmt.executeUpdate();
+                
+                messageInput.clear();
+                showAlert("Success!", "Your message has been sent to the owner.\nThey will reply soon!");
+                
+                // Reload messages to show the new one
+                loadMessages();
+                
+                // Scroll to top to show new message
+                if (messageList.getItems().size() > 0) {
+                    messageList.scrollTo(0);
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
+            showAlert("Error", "Failed to send message: " + e.getMessage());
         }
     }
     
     private void loadMessages() {
-        if (messageList == null) return;
+        if (messageList == null) {
+            System.out.println("DEBUG: messageList is NULL!");
+            return;
+        }
         messageList.getItems().clear();
         
         com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            messageList.getItems().add("Please login to view messages.");
+            return;
+        }
         
-        String query = "SELECT * FROM Messages WHERE sender_id = ? ORDER BY timestamp DESC";
+        // Get messages where user is EITHER sender OR receiver (for conversations with owner)
+        String query = "SELECT * FROM Messages WHERE sender_id = ? OR receiver_id = ? ORDER BY timestamp DESC";
         Connection conn = DatabaseAdapter.getInstance().getConnection();
         try (PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, user.getId());
+            stmt.setInt(2, user.getId());
             ResultSet rs = stmt.executeQuery();
             
-            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("MMM dd, yyyy HH:mm");
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("MMM dd, HH:mm");
             boolean hasMessages = false;
             
             while (rs.next()) {
                 hasMessages = true;
                 java.sql.Timestamp timestamp = rs.getTimestamp("timestamp");
-                String formattedDate = timestamp != null ? dateFormat.format(timestamp) : "Unknown date";
+                String formattedDate = timestamp != null ? dateFormat.format(timestamp) : "Unknown";
+                int senderId = rs.getInt("sender_id");
+                String content = rs.getString("content");
+                String reply = rs.getString("reply");
                 
                 StringBuilder msgBuilder = new StringBuilder();
-                msgBuilder.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-                msgBuilder.append("📤 You: ").append(rs.getString("content")).append("\n");
-                msgBuilder.append("   ").append(formattedDate).append("\n");
+                msgBuilder.append("━━━━━━━━━━━━━━━━━━\n");
                 
-                String reply = rs.getString("reply");
-                if (reply != null && !reply.trim().isEmpty()) {
-                    msgBuilder.append("\n📥 Owner: ").append(reply).append("\n");
+                // Check if this user sent the message or received it
+                if (senderId == user.getId()) {
+                    // User sent this message
+                    msgBuilder.append("📤 You (").append(formattedDate).append("):\n");
+                    msgBuilder.append("   ").append(content).append("\n");
+                    
+                    if (reply != null && !reply.trim().isEmpty()) {
+                        msgBuilder.append("\n📥 Owner replied:\n");
+                        msgBuilder.append("   ").append(reply).append("\n");
+                    } else {
+                        msgBuilder.append("\n⏳ Waiting for reply...\n");
+                    }
                 } else {
-                    msgBuilder.append("\n⏳ Waiting for reply...\n");
+                    // User received this message (from owner)
+                    msgBuilder.append("📥 Owner (").append(formattedDate).append("):\n");
+                    msgBuilder.append("   ").append(content).append("\n");
+                    
+                    if (reply != null && !reply.trim().isEmpty()) {
+                        msgBuilder.append("\n📤 You replied:\n");
+                        msgBuilder.append("   ").append(reply).append("\n");
+                    }
                 }
                 
                 messageList.getItems().add(msgBuilder.toString());
             }
             
+            System.out.println("DEBUG: Loaded " + messageList.getItems().size() + " messages");
+            
             if (!hasMessages) {
-                messageList.getItems().add("No messages yet. Start a conversation!");
+                messageList.getItems().add("💬 No messages yet.\n\nSend a message to the owner using the box above!");
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            messageList.getItems().add("Error loading messages");
+            System.out.println("ERROR loading messages: " + e.getMessage());
+            messageList.getItems().add("❌ Error loading messages: " + e.getMessage());
         }
     }
 
@@ -583,5 +704,255 @@ public class CustomerController {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+    
+    private void updateLoyaltyPoints() {
+        com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
+        if (user == null || loyaltyPointsLabel == null) return;
+        
+        // Refresh from database
+        String query = "SELECT loyalty_points FROM UserInfo WHERE id = ?";
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, user.getId());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int points = rs.getInt("loyalty_points");
+                user.setLoyaltyPoints(points);
+                loyaltyPointsLabel.setText(String.valueOf(points));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    @FXML
+    private void openMyCoupons() {
+        com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
+        if (user == null) return;
+        
+        // Show dialog with user's coupons
+        Alert dialog = new Alert(Alert.AlertType.INFORMATION);
+        dialog.setTitle("My Coupons");
+        dialog.setHeaderText("Your Available Coupons");
+        
+        VBox content = new VBox(10);
+        content.setStyle("-fx-padding: 10;");
+        
+        String query = "SELECT c.code, c.discount_amount, c.min_spend, uc.used " +
+                      "FROM UserCoupons uc " +
+                      "JOIN Coupons c ON uc.coupon_id = c.id " +
+                      "WHERE uc.user_id = ? " +
+                      "ORDER BY uc.used ASC, uc.acquired_date DESC";
+        
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        boolean hasCoupons = false;
+        
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, user.getId());
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                hasCoupons = true;
+                String code = rs.getString("code");
+                double discount = rs.getDouble("discount_amount");
+                double minSpend = rs.getDouble("min_spend");
+                boolean used = rs.getBoolean("used");
+                
+                HBox couponBox = new HBox(10);
+                couponBox.setStyle("-fx-padding: 10; -fx-background-color: " + 
+                    (used ? "#f5f5f5" : "#e8f5e9") + "; -fx-background-radius: 8;");
+                
+                VBox info = new VBox(3);
+                Label codeLabel = new Label("🎟️ " + code);
+                codeLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+                Label detailLabel = new Label(String.format("$%.2f off on orders $%.2f+", discount, minSpend));
+                detailLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
+                Label statusLabel = new Label(used ? "✓ Used" : "✓ Available");
+                statusLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: " + (used ? "#999" : "#4caf50") + ";");
+                
+                info.getChildren().addAll(codeLabel, detailLabel, statusLabel);
+                couponBox.getChildren().add(info);
+                content.getChildren().add(couponBox);
+            }
+            
+            if (!hasCoupons) {
+                Label noCoupons = new Label("You don't have any coupons yet.\nRedeem loyalty points to get coupons!");
+                noCoupons.setStyle("-fx-text-fill: #666; -fx-font-size: 12px;");
+                content.getChildren().add(noCoupons);
+            }
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            content.getChildren().add(new Label("Error loading coupons"));
+        }
+        
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(300);
+        dialog.getDialogPane().setContent(scroll);
+        dialog.showAndWait();
+    }
+    
+    @FXML
+    private void openCouponShop() {
+        com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
+        if (user == null) return;
+        
+        // Show dialog to redeem points for coupons
+        Alert dialog = new Alert(Alert.AlertType.CONFIRMATION);
+        dialog.setTitle("Coupon Shop");
+        dialog.setHeaderText("Redeem Loyalty Points for Coupons");
+        
+        VBox content = new VBox(15);
+        content.setStyle("-fx-padding: 15;");
+        
+        Label pointsLabel = new Label("Your Points: " + user.getLoyaltyPoints());
+        pointsLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #ef6c00;");
+        content.getChildren().add(pointsLabel);
+        
+        Separator sep = new Separator();
+        content.getChildren().add(sep);
+        
+        Label infoLabel = new Label("Available Coupons to Redeem:");
+        infoLabel.setStyle("-fx-font-weight: bold;");
+        content.getChildren().add(infoLabel);
+        
+        // Offer predefined coupons based on points
+        addCouponOffer(content, user, "SAVE5", 5.0, 25.0, 50, "Small discount for starters");
+        addCouponOffer(content, user, "SAVE10", 10.0, 50.0, 100, "Good value discount");
+        addCouponOffer(content, user, "SAVE20", 20.0, 100.0, 200, "Great savings!");
+        addCouponOffer(content, user, "SAVE50", 50.0, 200.0, 500, "Premium discount");
+        
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(400);
+        dialog.getDialogPane().setContent(scroll);
+        
+        dialog.getButtonTypes().clear();
+        dialog.getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+        dialog.showAndWait();
+    }
+    
+    private void addCouponOffer(VBox parent, com.group27.model.User user, String code, 
+                                double discount, double minSpend, int pointCost, String description) {
+        VBox offerBox = new VBox(8);
+        offerBox.setStyle("-fx-padding: 12; -fx-background-color: #f5f5f5; -fx-background-radius: 8; -fx-border-color: #e0e0e0; -fx-border-radius: 8;");
+        
+        HBox header = new HBox(10);
+        header.setAlignment(Pos.CENTER_LEFT);
+        
+        Label codeLabel = new Label("🎟️ " + code);
+        codeLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        
+        Label costLabel = new Label(pointCost + " points");
+        costLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #ef6c00; -fx-font-weight: bold;");
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        
+        header.getChildren().addAll(codeLabel, spacer, costLabel);
+        
+        Label detailLabel = new Label(String.format("$%.2f off on orders $%.2f+", discount, minSpend));
+        detailLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #666;");
+        
+        Label descLabel = new Label(description);
+        descLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #999; -fx-font-style: italic;");
+        
+        Button redeemBtn = new Button("Redeem");
+        redeemBtn.setMaxWidth(Double.MAX_VALUE);
+        
+        if (user.getLoyaltyPoints() < pointCost) {
+            redeemBtn.setDisable(true);
+            redeemBtn.setText("Not enough points");
+            redeemBtn.setStyle("-fx-text-fill: #999;");
+        }
+        
+        redeemBtn.setOnAction(e -> {
+            redeemCoupon(user, code, discount, minSpend, pointCost);
+            ((Stage) redeemBtn.getScene().getWindow()).close();
+        });
+        
+        offerBox.getChildren().addAll(header, detailLabel, descLabel, redeemBtn);
+        parent.getChildren().add(offerBox);
+    }
+    
+    private void redeemCoupon(com.group27.model.User user, String code, double discount, 
+                             double minSpend, int pointCost) {
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        
+        try {
+            conn.setAutoCommit(false);
+            
+            // Check if coupon exists, if not create it
+            String checkCoupon = "SELECT id FROM Coupons WHERE code = ?";
+            int couponId = -1;
+            
+            try (PreparedStatement stmt = conn.prepareStatement(checkCoupon)) {
+                stmt.setString(1, code);
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    couponId = rs.getInt("id");
+                } else {
+                    // Create coupon
+                    String createCoupon = "INSERT INTO Coupons (code, discount_amount, min_spend, active) VALUES (?, ?, ?, TRUE)";
+                    try (PreparedStatement createStmt = conn.prepareStatement(createCoupon, Statement.RETURN_GENERATED_KEYS)) {
+                        createStmt.setString(1, code);
+                        createStmt.setDouble(2, discount);
+                        createStmt.setDouble(3, minSpend);
+                        createStmt.executeUpdate();
+                        ResultSet keys = createStmt.getGeneratedKeys();
+                        if (keys.next()) {
+                            couponId = keys.getInt(1);
+                        }
+                    }
+                }
+            }
+            
+            if (couponId == -1) {
+                conn.rollback();
+                showAlert("Error", "Failed to create coupon");
+                return;
+            }
+            
+            // Add coupon to user
+            String addUserCoupon = "INSERT INTO UserCoupons (user_id, coupon_id) VALUES (?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(addUserCoupon)) {
+                stmt.setInt(1, user.getId());
+                stmt.setInt(2, couponId);
+                stmt.executeUpdate();
+            }
+            
+            // Deduct points
+            String updatePoints = "UPDATE UserInfo SET loyalty_points = loyalty_points - ? WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(updatePoints)) {
+                stmt.setInt(1, pointCost);
+                stmt.setInt(2, user.getId());
+                stmt.executeUpdate();
+            }
+            
+            conn.commit();
+            
+            // Update local user object
+            user.setLoyaltyPoints(user.getLoyaltyPoints() - pointCost);
+            updateLoyaltyPoints();
+            
+            showAlert("Success!", "Coupon '" + code + "' has been added to your account!\nYou can use it at checkout.");
+            
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            e.printStackTrace();
+            showAlert("Error", "Failed to redeem coupon: " + e.getMessage());
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

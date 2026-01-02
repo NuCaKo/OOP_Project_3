@@ -1,25 +1,28 @@
 package com.group27.controller;
 
-import com.group27.core.DatabaseAdapter;
-import com.group27.model.Product;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.stage.Stage;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Optional;
+
+import com.group27.core.DatabaseAdapter;
+import com.group27.model.Product;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 
 public class CartController {
 
@@ -65,19 +68,52 @@ public class CartController {
 
     @FXML private ListView<CartItem> cartListView;
     @FXML private DatePicker deliveryDate;
-    @FXML private TextField deliveryTime;
+    @FXML private javafx.scene.control.Spinner<Integer> hourSpinner;
+    @FXML private javafx.scene.control.Spinner<Integer> minuteSpinner;
     @FXML private Label totalLabel;
     @FXML private Label subtotalLabel;
     @FXML private Label taxLabel;
     @FXML private Label discountLabel;
     @FXML private TextField couponField;
+    @FXML private Button applyCouponBtn;
+    @FXML private Button removeCouponBtn;
+    @FXML private javafx.scene.layout.HBox couponStatusBox;
+    @FXML private Label appliedCouponLabel;
+    
+    private String appliedCouponCode = null;
     
     private double discountAmount = 0.0;
     private final double MIN_CART_VALUE = 10.0;
 
     @FXML
     public void initialize() {
+        System.out.println("DEBUG: CartController initialized. Cart items count: " + cartItems.size());
+        
+        // Initialize time spinners
+        if (hourSpinner != null) {
+            javafx.scene.control.SpinnerValueFactory<Integer> hourFactory = 
+                new javafx.scene.control.SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
+            hourSpinner.setValueFactory(hourFactory);
+            hourSpinner.setEditable(true);
+        }
+        
+        if (minuteSpinner != null) {
+            javafx.scene.control.SpinnerValueFactory<Integer> minuteFactory = 
+                new javafx.scene.control.SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0, 15);
+            minuteSpinner.setValueFactory(minuteFactory);
+            minuteSpinner.setEditable(true);
+        }
+        
+        if (cartListView == null) {
+            System.out.println("ERROR: cartListView is NULL!");
+            return;
+        }
+        
         cartListView.setItems(cartItems);
+        System.out.println("DEBUG: cartListView.setItems called with " + cartItems.size() + " items");
+        
+        // Force refresh
+        cartListView.refresh();
         cartListView.setCellFactory(param -> new ListCell<>() {
             @Override
             protected void updateItem(CartItem item, boolean empty) {
@@ -111,8 +147,37 @@ public class CartController {
                     javafx.scene.layout.Region spacer = new javafx.scene.layout.Region();
                     javafx.scene.layout.HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
 
-                    Label amountLbl = new Label(String.format("%.1f kg", item.getAmount()));
-                    amountLbl.setStyle("-fx-font-size: 14px;");
+                    // Quantity controls
+                    javafx.scene.layout.HBox qtyBox = new javafx.scene.layout.HBox(5);
+                    qtyBox.setAlignment(javafx.geometry.Pos.CENTER);
+                    
+                    Button minusBtn = new Button("-");
+                    minusBtn.getStyleClass().add("qty-button");
+                    minusBtn.setOnAction(e -> {
+                        if (item.getAmount() > 0.25) {
+                            item.addAmount(-0.25);
+                            int idx = cartItems.indexOf(item);
+                            cartItems.remove(idx);
+                            cartItems.add(idx, item);
+                            updateTotal();
+                        }
+                    });
+                    
+                    Label amountLbl = new Label(String.format("%.2f kg", item.getAmount()));
+                    amountLbl.setStyle("-fx-font-size: 14px; -fx-min-width: 60; -fx-alignment: center;");
+                    
+                    Button plusBtn = new Button("+");
+                    plusBtn.getStyleClass().add("qty-button");
+                    plusBtn.setOnAction(e -> {
+                        // Check if we can add more (need to implement stock check)
+                        item.addAmount(0.25);
+                        int idx = cartItems.indexOf(item);
+                        cartItems.remove(idx);
+                        cartItems.add(idx, item);
+                        updateTotal();
+                    });
+                    
+                    qtyBox.getChildren().addAll(minusBtn, amountLbl, plusBtn);
 
                     Label totalLbl = new Label("$" + String.format("%.2f", item.getTotal()));
                     totalLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #ef6c00;");
@@ -124,7 +189,7 @@ public class CartController {
                         updateTotal();
                     });
 
-                    card.getChildren().addAll(img, info, spacer, amountLbl, new Label("="), totalLbl, removeBtn);
+                    card.getChildren().addAll(img, info, spacer, qtyBox, new Label("="), totalLbl, removeBtn);
                     setGraphic(card);
                 }
             }
@@ -153,34 +218,88 @@ public class CartController {
     
     @FXML
     private void applyCoupon() {
-        String code = couponField.getText();
-        if (code.equals("WELCOME2025")) { // Hardcoded for simplicity or DB check
-            discountAmount = 10.0;
-            updateTotal();
-            showAlert("Success", "Coupon Applied: $10.00 off");
-        } else {
-            // DB check for coupons
-            String query = "SELECT discount_amount, min_spend FROM Coupons WHERE code = ? AND active = TRUE";
-            Connection conn = DatabaseAdapter.getInstance().getConnection();
-            try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setString(1, code);
-                ResultSet rs = stmt.executeQuery();
-                if (rs.next()) {
-                    double subtotal = cartItems.stream().mapToDouble(CartItem::getTotal).sum();
-                    if (subtotal >= rs.getDouble("min_spend")) {
-                        discountAmount = rs.getDouble("discount_amount");
-                        updateTotal();
-                        showAlert("Success", "Coupon Applied!");
-                    } else {
-                        showAlert("Error", "Minimum spend not met.");
-                    }
-                } else {
-                    showAlert("Error", "Invalid Coupon");
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+        // Check if a coupon is already applied
+        if (appliedCouponCode != null) {
+            showAlert("Coupon Already Applied", 
+                "You can only use one coupon per order.\nPlease remove the current coupon (" + appliedCouponCode + ") to apply a different one.");
+            return;
         }
+        
+        String code = couponField.getText().trim();
+        if (code.isEmpty()) {
+            showAlert("Error", "Please enter a coupon code.");
+            return;
+        }
+        
+        com.group27.model.User user = com.group27.utils.UserSession.getInstance().getCurrentUser();
+        if (user == null) {
+            showAlert("Error", "Please login to use coupons.");
+            return;
+        }
+        
+        // Check if user owns this coupon and hasn't used it
+        String checkQuery = "SELECT uc.id, c.discount_amount, c.min_spend " +
+                           "FROM UserCoupons uc " +
+                           "JOIN Coupons c ON uc.coupon_id = c.id " +
+                           "WHERE uc.user_id = ? AND c.code = ? AND uc.used = FALSE AND c.active = TRUE";
+        
+        Connection conn = DatabaseAdapter.getInstance().getConnection();
+        try (PreparedStatement stmt = conn.prepareStatement(checkQuery)) {
+            stmt.setInt(1, user.getId());
+            stmt.setString(2, code);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                double subtotal = cartItems.stream().mapToDouble(CartItem::getTotal).sum();
+                double minSpend = rs.getDouble("min_spend");
+                double discount = rs.getDouble("discount_amount");
+                
+                if (subtotal >= minSpend) {
+                    appliedCouponCode = code;
+                    discountAmount = discount;
+                    updateTotal();
+                    
+                    // Show coupon status
+                    if (couponStatusBox != null) {
+                        appliedCouponLabel.setText("✓ " + code + " applied (-$" + String.format("%.2f", discount) + ")");
+                        couponStatusBox.setVisible(true);
+                        couponStatusBox.setManaged(true);
+                        couponField.setDisable(true);
+                        applyCouponBtn.setDisable(true);
+                    }
+                    
+                    showAlert("Success!", "Coupon '" + code + "' applied successfully!\nYou saved $" + String.format("%.2f", discount));
+                } else {
+                    showAlert("Minimum Spend Required", 
+                        String.format("This coupon requires a minimum spend of $%.2f.\nYour current subtotal is $%.2f.", minSpend, subtotal));
+                }
+            } else {
+                showAlert("Invalid Coupon", 
+                    "This coupon is either invalid, already used, or not available in your account.\n\n" +
+                    "Tip: Check 'My Coupons' to see your available coupons!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to apply coupon: " + e.getMessage());
+        }
+    }
+    
+    @FXML
+    private void removeCoupon() {
+        appliedCouponCode = null;
+        discountAmount = 0;
+        updateTotal();
+        
+        // Hide coupon status
+        if (couponStatusBox != null) {
+            couponStatusBox.setVisible(false);
+            couponStatusBox.setManaged(false);
+            couponField.setDisable(false);
+            applyCouponBtn.setDisable(false);
+            couponField.clear();
+        }
+        
+        showAlert("Coupon Removed", "The coupon has been removed from your order.");
     }
 
     @FXML
@@ -198,26 +317,33 @@ public class CartController {
         }
         
         LocalDate date = deliveryDate.getValue();
-        String timeStr = deliveryTime.getText();
         
-        if (date == null || timeStr.isEmpty()) {
+        if (date == null) {
             showAlert("Missing Info", "Please select delivery date and time.");
             return;
         }
         
+        if (hourSpinner == null || minuteSpinner == null) {
+            showAlert("Error", "Time selection not available.");
+            return;
+        }
+        
         try {
-            LocalTime time = LocalTime.parse(timeStr, DateTimeFormatter.ofPattern("HH:mm"));
+            int hour = hourSpinner.getValue();
+            int minute = minuteSpinner.getValue();
+            LocalTime time = LocalTime.of(hour, minute);
             LocalDateTime deliveryDateTime = LocalDateTime.of(date, time);
             
             System.out.println("DEBUG: Selected Delivery: " + deliveryDateTime);
             System.out.println("DEBUG: Current Time: " + LocalDateTime.now());
             
-            if (deliveryDateTime.isAfter(LocalDateTime.now().plusHours(168))) { // Relaxed to 1 week
-                showAlert("Invalid Date", "Delivery must be within 7 days.");
+            // Delivery must be within 48 hours
+            if (deliveryDateTime.isAfter(LocalDateTime.now().plusHours(48))) {
+                showAlert("Invalid Date", "⚠️ Delivery must be within 48 hours.\n\nPlease select a date and time within the next 2 days.");
                 return;
             }
-            if (deliveryDateTime.isBefore(LocalDateTime.now())) {
-                showAlert("Invalid Date", "Time machine broken. Select future date.");
+            if (deliveryDateTime.isBefore(LocalDateTime.now().plusHours(1))) {
+                showAlert("Invalid Date", "⚠️ Please select a delivery time at least 1 hour from now.\n\nThis allows us time to prepare your order.");
                 return;
             }
             
@@ -226,7 +352,7 @@ public class CartController {
             
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert("Invalid Time", "Format HH:mm (e.g., 14:30)");
+            showAlert("Error", "Failed to process checkout: " + e.getMessage());
         }
     }
     
@@ -303,9 +429,16 @@ public class CartController {
             }
             
             // Update Loyalty Points
-            updateLoyaltyPoints(userId, (int)total);
+            int pointsEarned = (int)total;
+            updateLoyaltyPoints(userId, pointsEarned);
             
-            showAlert("Success", "Order placed successfully! Invoice generated. You earned " + (int)total + " loyalty points.");
+            // Update user session with new points
+            com.group27.model.User currentUser = com.group27.utils.UserSession.getInstance().getCurrentUser();
+            if (currentUser != null) {
+                currentUser.setLoyaltyPoints(currentUser.getLoyaltyPoints() + pointsEarned);
+            }
+            
+            showAlert("Success", "Order placed successfully! Invoice generated.\n🎁 You earned " + pointsEarned + " loyalty points!");
             clearCart();
             ((Stage) cartListView.getScene().getWindow()).close();
             

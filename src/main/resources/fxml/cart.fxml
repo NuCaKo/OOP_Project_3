@@ -4,19 +4,25 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<VBox xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.CartController" spacing="20" styleClass="liquid-glass-pane" stylesheets="@../css/style.css">
-    <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
-    </padding>
+<ScrollPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group27.controller.CartController" fitToWidth="true" fitToHeight="true" stylesheets="@../css/style.css">
+<VBox spacing="20" styleClass="liquid-glass-pane" style="-fx-padding: 20;">
 
-    <Label text="Your Shopping Cart" styleClass="title-label"/>
+    <Label text="🛒 Your Shopping Cart" styleClass="title-label"/>
 
-    <ListView fx:id="cartListView" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent;"/>
+    <ListView fx:id="cartListView" prefHeight="300" minHeight="200" VBox.vgrow="ALWAYS"/>
 
-    <HBox spacing="10" alignment="CENTER_RIGHT">
-        <TextField fx:id="couponField" promptText="Coupon Code"/>
-        <Button text="Apply" onAction="#applyCoupon"/>
-    </HBox>
+    <VBox spacing="8" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+        <Label text="🎟️ Apply Coupon" style="-fx-font-weight: bold;"/>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <TextField fx:id="couponField" promptText="Enter Coupon Code" HBox.hgrow="ALWAYS"/>
+            <Button fx:id="applyCouponBtn" text="Apply" onAction="#applyCoupon"/>
+        </HBox>
+        <HBox fx:id="couponStatusBox" spacing="10" alignment="CENTER_LEFT" managed="false" visible="false" style="-fx-padding: 5; -fx-background-color: #e8f5e9; -fx-background-radius: 5;">
+            <Label fx:id="appliedCouponLabel" text="" style="-fx-text-fill: #2e7d32; -fx-font-weight: bold;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="removeCouponBtn" text="✖ Remove" onAction="#removeCoupon" style="-fx-font-size: 10px; -fx-background-color: #ffcdd2; -fx-text-fill: #c62828;"/>
+        </HBox>
+    </VBox>
 
     <HBox spacing="20" alignment="CENTER_RIGHT">
         <VBox alignment="CENTER_RIGHT">
@@ -27,10 +33,23 @@
         </VBox>
     </HBox>
 
-    <HBox spacing="20" alignment="CENTER_RIGHT" style="-fx-background-color: rgba(255,255,255,0.5); -fx-padding: 10; -fx-background-radius: 10;">
-        <Label text="Delivery:"/>
-        <DatePicker fx:id="deliveryDate" promptText="Select Date"/>
-        <TextField fx:id="deliveryTime" promptText="HH:mm" prefWidth="80"/>
-        <Button text="Checkout" onAction="#handleCheckout" styleClass="button"/>
-    </HBox>
+    <VBox spacing="10" styleClass="liquid-glass-pane" style="-fx-padding: 15;">
+        <Label text="📅 Delivery Schedule" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <VBox spacing="5">
+                <Label text="Date:" style="-fx-font-size: 11px;"/>
+                <DatePicker fx:id="deliveryDate" promptText="Select Date" prefWidth="150"/>
+            </VBox>
+            <VBox spacing="5">
+                <Label text="Time:" style="-fx-font-size: 11px;"/>
+                <HBox spacing="5">
+                    <Spinner fx:id="hourSpinner" prefWidth="70" editable="true"/>
+                    <Label text=":" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                    <Spinner fx:id="minuteSpinner" prefWidth="70" editable="true"/>
+                </HBox>
+            </VBox>
+        </HBox>
+        <Button text="✓ Checkout" onAction="#handleCheckout" styleClass="button" maxWidth="Infinity" style="-fx-font-size: 14px;"/>
+    </VBox>
 </VBox>
+</ScrollPane>

@@ -1,15 +1,12 @@
 package com.group27.core;
 
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.awt.image.BufferedImage;
-import java.awt.Graphics2D;
-import java.awt.Color;
-import java.awt.Font;
-import javax.imageio.ImageIO;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class DatabaseAdapter {
     // PDF[cite: 67]: Tüm gruplar bu giriş bilgilerini kullanacak.
@@ -140,7 +137,8 @@ public class DatabaseAdapter {
                     rs.getString("username"),
                     rs.getString("password"),
                     rs.getString("role"),
-                    rs.getString("address")
+                    rs.getString("address"),
+                    rs.getInt("loyalty_points")
                 );
             }
         } catch (SQLException e) {

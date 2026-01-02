@@ -20,7 +20,7 @@
     <center>
         <SplitPane dividerPositions="0.7">
             <!-- Left Side: Products in TitledPanes -->
-            <ScrollPane fitToWidth="true">
+            <ScrollPane fitToWidth="true" fitToHeight="true">
                 <Accordion expandedPane="$vegPaneTitled">
                     <panes>
                         <TitledPane fx:id="vegPaneTitled" text="Vegetables" styleClass="category-header-veg">
@@ -34,6 +34,7 @@
             </ScrollPane>
             
             <!-- Right Side: Messages & Extras (To keep clean layout) -->
+            <ScrollPane fitToWidth="true" fitToHeight="true">
             <VBox spacing="10" style="-fx-padding: 20;">
                 <HBox spacing="10" alignment="CENTER_LEFT">
                     <Label text="My Profile" styleClass="title-label"/>
@@ -48,9 +49,21 @@
                 </VBox>
 
                 <Separator/>
+                
+                <!-- Loyalty Points & Coupons -->
+                <VBox spacing="8" styleClass="liquid-glass-pane" style="-fx-padding: 10;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="🎁 Loyalty Points:" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                        <Label fx:id="loyaltyPointsLabel" text="0" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #ef6c00;"/>
+                    </HBox>
+                    <Button text="View My Coupons" onAction="#openMyCoupons" maxWidth="Infinity" style="-fx-font-size: 11px;"/>
+                    <Button text="Redeem Points for Coupon" onAction="#openCouponShop" maxWidth="Infinity" style="-fx-font-size: 11px;"/>
+                </VBox>
+
+                <Separator/>
 
                 <Label text="Cart Preview" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
-                <ListView fx:id="miniCartList" prefHeight="150" minHeight="100" style="-fx-font-size: 11px;" visible="true" managed="true"/>
+                <ListView fx:id="miniCartList" prefHeight="120" minHeight="100" style="-fx-font-size: 11px;" visible="true" managed="true"/>
                 
                 <Separator/>
                 
@@ -58,8 +71,9 @@
                 <TextArea fx:id="messageInput" promptText="Write a message to the owner..." prefHeight="80" wrapText="true"/>
                 <Button text="Send Message" onAction="#sendMessage"/>
                 <Label text="Inbox:" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
-                <ListView fx:id="messageList" VBox.vgrow="ALWAYS" style="-fx-font-size: 11px; -fx-font-family: 'Monaco', 'Menlo', monospace;"/>
+                <ListView fx:id="messageList" prefHeight="200" style="-fx-font-size: 11px; -fx-font-family: 'Monaco', 'Menlo', monospace;"/>
             </VBox>
+            </ScrollPane>
         </SplitPane>
     </center>
 </BorderPane>
